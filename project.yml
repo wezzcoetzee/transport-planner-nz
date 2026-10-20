@@ -1,0 +1,63 @@
+name: WhenToLeave
+options:
+  bundleIdPrefix: org.transportplannernz
+  deploymentTarget:
+    macOS: "26.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+targets:
+  WhenToLeave:
+    type: application
+    platform: macOS
+    sources:
+      - path: WhenToLeave
+    info:
+      path: WhenToLeave/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: When To Leave
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSUIElement: true
+        CFBundleIconFile: AppIcon
+        LSApplicationCategoryType: public.app-category.travel
+        NSHumanReadableCopyright: Personal use
+        NSLocationUsageDescription: Reminders only fire while you are at the office.
+        NSLocationWhenInUseUsageDescription: Reminders only fire while you are at the office.
+    entitlements:
+      path: WhenToLeave/Resources/WhenToLeave.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.transportplannernz.WhenToLeave
+        ENABLE_HARDENED_RUNTIME: false
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+  WhenToLeaveTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: WhenToLeaveTests
+      - path: WhenToLeave/Core
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.transportplannernz.WhenToLeaveTests
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  WhenToLeave:
+    build:
+      targets:
+        WhenToLeave: all
+        WhenToLeaveTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [WhenToLeaveTests]

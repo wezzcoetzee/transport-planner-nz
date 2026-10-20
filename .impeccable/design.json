@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-12T08:05:00+12:00",
+  "title": "Design System: When To Leave",
+  "extensions": {
+    "colorMeta": {
+      "board-black": { "role": "neutral", "displayName": "Board Black", "canonical": "oklch(0% 0 0)", "tonalRamp": ["#000000", "#0A0A0A", "#141414", "#1F1F1F", "#2B2B2B", "#3A3A3A", "#4D4D4D", "#666666"] },
+      "signal-white": { "role": "primary", "displayName": "Signal White", "canonical": "oklch(100% 0 0)", "tonalRamp": ["#333333", "#4D4D4D", "#666666", "#808080", "#999999", "#B3B3B3", "#E0E0E0", "#FFFFFF"] },
+      "dimmed-white": { "role": "neutral", "displayName": "Dimmed White", "canonical": "rgba(255,255,255,0.55)", "tonalRamp": ["#FFFFFF1A", "#FFFFFF33", "#FFFFFF4D", "#FFFFFF66", "#FFFFFF8C", "#FFFFFFA6", "#FFFFFFCC", "#FFFFFFE6"] },
+      "live-green": { "role": "semantic", "displayName": "Live Green", "canonical": "oklch(75% 0.2 150)", "tonalRamp": ["#0B3A1C", "#125A2C", "#197A3C", "#219A4C", "#28B858", "#30D158", "#7BE39A", "#C6F2D3"] },
+      "delay-orange": { "role": "semantic", "displayName": "Delay Orange", "canonical": "oklch(78% 0.17 70)", "tonalRamp": ["#4A2E00", "#704600", "#965E00", "#BC7600", "#E28E00", "#FF9F0A", "#FFC266", "#FFE3B8"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "The single leave statement. SwiftUI .title3 semibold with tabular digits." },
+      "title": { "displayName": "Title", "purpose": "Leave time on the recommended row and route numbers. SwiftUI .callout semibold." },
+      "body": { "displayName": "Body", "purpose": "Settings labels and controls. Not used in the popover." },
+      "label": { "displayName": "Label", "purpose": "Legs, arrivals, durations, delays, footer actions, badges. SwiftUI .caption / .caption2." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "none", "value": "0ms", "purpose": "No motion anywhere. Menu bar label updates every 30 s without animation." }
+    ],
+    "breakpoints": [
+      { "name": "popover", "value": "360px" },
+      { "name": "settings", "value": "520px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Headline",
+      "kind": "custom",
+      "refersTo": "headline-leave",
+      "description": "The leave statement with the realtime badge on the same baseline.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-headline\"><span class=\"ds-headline-text\">Leave in 12 min</span><span class=\"ds-badge-live\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M7 8a7 7 0 0 0 0 8M17 8a7 7 0 0 1 0 8M4 5a11 11 0 0 0 0 14M20 5a11 11 0 0 1 0 14\"/></svg>Live</span></div></div>",
+      "css": ".ds-board { background: #000; color: #fff; padding: 12px; width: 336px; font-family: -apple-system, system-ui, sans-serif; } .ds-headline { display: flex; justify-content: space-between; align-items: baseline; } .ds-headline-text { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-badge-live { font-size: 10px; color: #30D158; display: inline-flex; gap: 3px; align-items: center; }"
+    },
+    {
+      "name": "Journey Row (recommended)",
+      "kind": "custom",
+      "refersTo": "journey-row-recommended",
+      "description": "One lit board row: time column, legs, duration.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-row\"><div class=\"ds-row-time\"><div class=\"ds-t1\">4:57 pm</div><div class=\"ds-t2\">5:23 pm</div></div><div class=\"ds-row-legs\"><div class=\"ds-leg ds-dim\">4 min walk · 300 m</div><div class=\"ds-leg\"><b>105</b> Lower Albert → Ponsonby Rd <span class=\"ds-dim\">· 9 stops</span></div><div class=\"ds-leg ds-dim\">2 min walk · 150 m</div></div><div class=\"ds-row-dur\"><div>25 min</div><div class=\"ds-ontime\">on time</div></div></div></div>",
+      "css": ".ds-board { background: #000; color: #fff; padding: 12px; width: 336px; font-family: -apple-system, system-ui, sans-serif; } .ds-row { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; } .ds-row-time { width: 62px; flex: none; } .ds-t1 { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-t2, .ds-dim { font-size: 10px; color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums; } .ds-row-legs { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 10px; } .ds-leg b { font-weight: 600; } .ds-row-dur { text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; } .ds-ontime { color: #30D158; font-size: 9px; }"
+    },
+    {
+      "name": "Journey Row (alternative)",
+      "kind": "custom",
+      "refersTo": "journey-row-alternative",
+      "description": "Same row at 70% opacity with a regular-weight time and an orange delay.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-row ds-alt\"><div class=\"ds-row-time\"><div class=\"ds-t1\">5:03 pm</div><div class=\"ds-t2\">5:28 pm</div></div><div class=\"ds-row-legs\"><div class=\"ds-leg ds-dim\">3 min walk · 240 m</div><div class=\"ds-leg\"><b>195</b> Victoria St → Ponsonby Rd <span class=\"ds-dim\">· 11 stops</span></div></div><div class=\"ds-row-dur\"><div>25 min</div><div class=\"ds-late\">+4</div></div></div></div>",
+      "css": ".ds-board { background: #000; color: #fff; padding: 12px; width: 336px; font-family: -apple-system, system-ui, sans-serif; } .ds-row { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; } .ds-alt { opacity: 0.7; } .ds-row-time { width: 62px; flex: none; } .ds-alt .ds-t1 { font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; } .ds-t2, .ds-dim { font-size: 10px; color: rgba(255,255,255,0.55); } .ds-row-legs { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 10px; } .ds-leg b { font-weight: 600; } .ds-row-dur { text-align: right; font-size: 10px; font-variant-numeric: tabular-nums; } .ds-late { color: #FF9F0A; font-size: 9px; }"
+    },
+    {
+      "name": "Footer Actions",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Borderless caption-sized text actions with trailing icon buttons.",
+      "html": "<div class=\"ds-board\"><div class=\"ds-footer\"><button class=\"ds-btn-text\">Refresh</button><button class=\"ds-btn-text\">Next option</button><button class=\"ds-btn-text\">Not today</button><button class=\"ds-btn-text\">Maps</button><span class=\"ds-spacer\"></span><button class=\"ds-btn-text\" aria-label=\"Settings\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/></svg></button></div></div>",
+      "css": ".ds-board { background: #000; color: #fff; padding: 12px; width: 336px; font-family: -apple-system, system-ui, sans-serif; } .ds-footer { display: flex; gap: 10px; align-items: center; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 8px; } .ds-spacer { flex: 1; } .ds-btn-text { background: none; border: none; color: #fff; font-size: 10px; padding: 0; cursor: default; font-family: inherit; display: inline-flex; align-items: center; } .ds-btn-text:hover { color: rgba(255,255,255,0.75); } .ds-btn-text:focus-visible { outline: 2px solid #3B82F6; outline-offset: 2px; border-radius: 2px; }"
+    },
+    {
+      "name": "Badge (schedule error)",
+      "kind": "chip",
+      "refersTo": "badge-delay",
+      "description": "Caption text with a warning symbol, never a pill.",
+      "html": "<div class=\"ds-board\"><span class=\"ds-badge-warn\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01\"/></svg>Schedule</span></div>",
+      "css": ".ds-board { background: #000; color: #fff; padding: 12px; width: 336px; font-family: -apple-system, system-ui, sans-serif; } .ds-badge-warn { font-size: 10px; color: #FF9F0A; display: inline-flex; gap: 3px; align-items: center; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Departure Board",
+    "overview": "A station departure board seen from across a dark concourse. The surface is unlit black; the only things that exist are the characters the board has chosen to light. The next departure is brightest, the ones after it are dimmer, and nothing else is on. Every glyph is information: a time, a route number, a stop name, a walk. There is no frame around the board and no decoration on it, because a board that decorated itself would be a worse board.\n\nThat metaphor sets the density and the restraint. The popover is a single column of services, 360 points wide, read top to bottom in the order you could catch them. Hierarchy comes from three things only: weight, brightness and position. The recommended journey is full white and semibold; alternatives are the same rows at 70% brightness. Color appears in exactly two places, a green \"Live\" mark when realtime data is flowing and an orange figure when a bus is running late, and both are the size of a caption.\n\nThe system explicitly rejects the look of AT Mobile and Google Maps transit (coloured route pills, maps, decorative iconography) and of generic SaaS dashboards (cards inside cards, hero metric with a small label, gradient accents, light-grey subtitle lines above sections). Settings are plain macOS grouped forms and do not try to be interesting.",
+    "keyCharacteristics": [
+      "True black surface, white type, nothing between them",
+      "One headline number; everything else is evidence beneath it",
+      "Brightness and weight carry hierarchy, never boxes or rules",
+      "SF system font throughout, tabular digits wherever a time appears",
+      "Two semantic colors, each caption-sized and state-bound",
+      "Static menu bar label, no motion anywhere"
+    ],
+    "rules": [
+      { "name": "The Two Lamps Rule", "body": "Green and orange are the only chromatic colors permitted. Each is caption-sized, each means one state, neither is ever used for decoration or emphasis. Route colors from the GTFS feed are ignored.", "section": "colors" },
+      { "name": "The Unlit Rule", "body": "The background is #000000 and stays there. Hierarchy is created by turning text down, never by turning the surface up.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Any glyph that represents a time, a count of minutes or a distance uses tabular figures. Proportional digits in a countdown are a defect.", "section": "typography" },
+      { "name": "The Two Steps Rule", "body": "The popover uses exactly two effective sizes, headline and label, with title as the bridge on the recommended row. Adding a fourth size is adding noise.", "section": "typography" },
+      { "name": "The Flat Board Rule", "body": "Nothing casts a shadow and nothing has an outline. If a row needs a box to be readable, the row has too much in it.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the background #000000 in both the popover and Settings. Never raise it to a grey.",
+      "Do carry hierarchy with weight (600 vs 400) and brightness (100%, 55%, 70% row opacity) only.",
+      "Do use tabular figures on every time, minute count and metre count.",
+      "Do keep green for \"live\" and small delays, orange for delays of three minutes or more and for errors, and use each at caption size only.",
+      "Do use stock macOS controls in Settings and borderless text buttons in the popover.",
+      "Do keep the menu bar label static and let the model update it on a timer.",
+      "Do give every icon-only button a VoiceOver label."
+    ],
+    "donts": [
+      "Don't reproduce AT Mobile or Google Maps transit: no coloured route pills, no maps, no decorative iconography, no GTFS route colours.",
+      "Don't build a generic SaaS dashboard: no cards inside cards, no hero metric with a small label beneath it, no gradient accents, no light-grey subtitle lines above sections.",
+      "Don't draw borders, shadows, side stripes or background tints around journey rows. A row is text on black.",
+      "Don't add a third grey or a fourth type size. Dim what exists instead.",
+      "Don't animate anything that repaints continuously: no pulses, shimmers, spinners or blur. The import phase is a text status, not a progress animation.",
+      "Don't put a TimelineView or any self-updating view inside the MenuBarExtra label; it loops the status item and starves the main actor.",
+      "Don't use exclamation marks, emoji or encouragement in copy. \"Leave in 12 min\" is the whole voice.",
+      "Don't use em dashes anywhere in the interface."
+    ]
+  }
+}
