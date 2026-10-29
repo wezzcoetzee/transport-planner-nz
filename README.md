@@ -14,7 +14,16 @@ macOS menu bar app that tells you when to walk out of the office so you arrive a
 - Optionally applies live delays and cancellations from the AT Realtime API if you paste a free developer key.
 - Falls back to an Apple Maps transit estimate when the timetable is unavailable, and can open the trip in Maps.
 
-
+```mermaid
+flowchart LR
+    GTFS[AT GTFS zip] -->|import| DB[(SQLite)]
+    DB --> Planner[JourneyPlanner<br/>direct + 1 transfer]
+    RT[AT Realtime API<br/>optional key] --> Adjust[RealtimeAdjuster]
+    Planner --> Adjust --> Chooser[JourneyChooser]
+    Chooser --> Menu[Menu bar + popover]
+    Chooser --> Notify[LeaveNotifier]
+    Maps[Apple Maps transit ETA] -.fallback.-> Menu
+```
 
 ## Build
 
