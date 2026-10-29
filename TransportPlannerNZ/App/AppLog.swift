@@ -2,12 +2,12 @@ import Foundation
 import os
 
 /// Mirrors app-level log lines to a small rolling text file so behaviour can be inspected without Console.app.
-/// File: ~/Library/Application Support/WhenToLeave/app.log
+/// File: ~/Library/Application Support/TransportPlannerNZ/app.log
 enum AppLog {
-    private static let logger = Logger(subsystem: "org.transportplannernz.WhenToLeave", category: "app")
+    private static let logger = Logger(subsystem: "org.transportplannernz.TransportPlannerNZ", category: "app")
     static let fileURL = URL(fileURLWithPath: AppModel.dbPath).deletingLastPathComponent().appendingPathComponent("app.log")
     private static let maxBytes = 512 * 1024
-    private static let queue = DispatchQueue(label: "org.transportplannernz.WhenToLeave.log")
+    private static let queue = DispatchQueue(label: "org.transportplannernz.TransportPlannerNZ.log")
 
     static func note(_ message: String) { logger.notice("\(message, privacy: .public)"); append("NOTE", message) }
     static func error(_ message: String) { logger.error("\(message, privacy: .public)"); append("ERR ", message) }

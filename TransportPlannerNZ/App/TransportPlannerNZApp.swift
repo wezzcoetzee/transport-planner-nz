@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct WhenToLeaveApp: App {
+struct TransportPlannerNZApp: App {
     private let model = AppModel.shared
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 

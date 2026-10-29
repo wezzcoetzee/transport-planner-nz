@@ -99,7 +99,7 @@ struct MenuBarView: View {
             Button { openSettings(); NSApp.activate() } label: { Image(systemName: "gear") }
                 .accessibilityLabel("Settings").help("Settings").keyboardShortcut(",")
             Button { NSApplication.shared.terminate(nil) } label: { Image(systemName: "power") }
-                .accessibilityLabel("Quit When To Leave").help("Quit").keyboardShortcut("q")
+                .accessibilityLabel("Quit Transport Planner NZ").help("Quit").keyboardShortcut("q")
         }
         .buttonStyle(.borderless)
         .font(.caption)

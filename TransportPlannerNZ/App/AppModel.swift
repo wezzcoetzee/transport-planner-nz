@@ -8,7 +8,7 @@ import ServiceManagement
 @Observable @MainActor
 final class AppModel {
     nonisolated static let dbPath: String = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("WhenToLeave", isDirectory: true)
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("TransportPlannerNZ", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("gtfs.sqlite").path
     }()

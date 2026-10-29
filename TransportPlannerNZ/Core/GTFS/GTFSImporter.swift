@@ -4,7 +4,7 @@ import os
 /// Downloads the public AT GTFS zip and builds a fresh SQLite database next to the live one, then swaps it in.
 actor GTFSImporter {
     static let feedURL = URL(string: "https://gtfs.at.govt.nz/gtfs.zip")!
-    private static let log = Logger(subsystem: "org.transportplannernz.WhenToLeave", category: "import")
+    private static let log = Logger(subsystem: "org.transportplannernz.TransportPlannerNZ", category: "import")
 
     enum Phase: Sendable, Equatable {
         case idle, downloading(Double), extracting, importing(String), indexing, done, failed(String)
