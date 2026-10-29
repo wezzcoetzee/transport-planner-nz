@@ -1,4 +1,4 @@
-# When To Leave
+# Transport Planner NZ
 
 macOS menu bar app that tells you when to walk out of the office so you arrive at the bus stop just before the bus, not fifteen minutes early. Uses Auckland Transport timetable data. This is an independent community project and is not affiliated with or endorsed by Auckland Transport.
 
@@ -24,16 +24,16 @@ Requires Xcode 26 and [xcodegen](https://github.com/yonaskolb/XcodeGen).
 git clone https://github.com/wezzcoetzee/transport-planner-nz.git
 cd transport-planner-nz
 xcodegen generate
-xcodebuild -project WhenToLeave.xcodeproj -scheme WhenToLeave -configuration Release -derivedDataPath build/DerivedData build
-open build/DerivedData/Build/Products/Release/WhenToLeave.app
+xcodebuild -project TransportPlannerNZ.xcodeproj -scheme TransportPlannerNZ -configuration Release -derivedDataPath build/DerivedData build
+open build/DerivedData/Build/Products/Release/TransportPlannerNZ.app
 ```
 
-Or open `WhenToLeave.xcodeproj` and run. The app has no dock icon; look for the bus in the menu bar.
+Or open `TransportPlannerNZ.xcodeproj` and run. The app has no dock icon; look for the bus in the menu bar.
 
 To package a disk image for installing on another Mac:
 
 ```sh
-./scripts/build-dmg.sh   # writes dist/WhenToLeave-<version>.dmg
+./scripts/build-dmg.sh   # writes dist/TransportPlannerNZ-<version>.dmg
 ```
 
 The build is ad-hoc signed, not notarised. On first open, right-click the app and choose Open, or allow it under System Settings > Privacy & Security.
@@ -56,7 +56,7 @@ For each candidate boarding at an origin stop, the leave time is `departure - wa
 
 ```sh
 xcodegen generate
-xcodebuild -project WhenToLeave.xcodeproj -scheme WhenToLeave -destination 'platform=macOS' -derivedDataPath build/DerivedData test
+xcodebuild -project TransportPlannerNZ.xcodeproj -scheme TransportPlannerNZ -destination 'platform=macOS' -derivedDataPath build/DerivedData test
 ```
 
 Unit tests use a small synthetic feed. An end-to-end test against the real AT feed runs only if the feed is extracted to `/tmp/at_gtfs`:
@@ -67,8 +67,8 @@ curl -o /tmp/at_gtfs.zip https://gtfs.at.govt.nz/gtfs.zip && mkdir -p /tmp/at_gt
 
 ## Files
 
-- `~/Library/Application Support/WhenToLeave/gtfs.sqlite` imported timetable
-- `~/Library/Application Support/WhenToLeave/app.log` rolling trace of imports, plans and notifications
+- `~/Library/Application Support/TransportPlannerNZ/gtfs.sqlite` imported timetable
+- `~/Library/Application Support/TransportPlannerNZ/app.log` rolling trace of imports, plans and notifications
 
 ## Privacy and credentials
 

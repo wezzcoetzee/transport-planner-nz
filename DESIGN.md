@@ -1,5 +1,5 @@
 ---
-name: When To Leave
+name: Transport Planner NZ
 description: A departure board in the menu bar. One time to leave, lit in white on black.
 colors:
   board-black: "#000000"
@@ -74,7 +74,7 @@ components:
     height: "460px"
 ---
 
-# Design System: When To Leave
+# Design System: Transport Planner NZ
 
 ## 1. Overview
 

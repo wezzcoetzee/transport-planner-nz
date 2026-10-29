@@ -4,7 +4,7 @@ import os
 /// Auckland Transport GTFS-Realtime trip updates. Requires a free subscription key from dev-portal.at.govt.nz.
 struct ATRealtimeClient: Sendable {
     static let tripUpdatesURL = URL(string: "https://api.at.govt.nz/realtime/legacy/tripupdates")!
-    private static let log = Logger(subsystem: "org.transportplannernz.WhenToLeave", category: "realtime")
+    private static let log = Logger(subsystem: "org.transportplannernz.TransportPlannerNZ", category: "realtime")
 
     let subscriptionKey: String
     var session: URLSession = .shared
