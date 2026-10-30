@@ -1,0 +1,18 @@
+{
+  "app": "Transport Planner NZ",
+  "platform": "mac",
+  "scheme": "TransportPlannerNZ",
+  "bundleId": "org.transportplannernz.TransportPlannerNZ",
+  "bg1": "#14321C",
+  "bg2": "#000000",
+  "text": "#FFFFFF",
+  "frame": "mac",
+  "template": "screenshots/frame.html",
+  "compositeSize": "2880x1800",
+  "capture": "TransportPlannerNZ -uiScreenshots screenshots/raw/mac (Debug build) writes every raw PNG in one launch",
+  "screens": [
+    { "id": "popover", "headline": "Leave at the right minute.", "subheadline": "Walk out just before the bus, not fifteen minutes early." },
+    { "id": "leave-now", "headline": "Time to go.", "subheadline": "A prompt under the menu bar that waits until you answer." },
+    { "id": "schedule", "headline": "Every option, ranked.", "subheadline": "Direct and one-transfer trips from the Auckland Transport timetable." }
+  ]
+}

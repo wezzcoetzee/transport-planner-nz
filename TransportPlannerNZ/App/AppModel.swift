@@ -67,6 +67,9 @@ final class AppModel {
     private init() {
         settings = SettingsStore.load()
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        #if DEBUG
+        guard !Screenshots.isEnabled else { return }
+        #endif
         Task { [weak self, importer] in await importer.observe { [weak self] p in Task { @MainActor in self?.importPhase = p } } }
         Task { await bootstrap() }
     }
@@ -406,3 +409,16 @@ final class AppModel {
         }
     }
 }
+
+#if DEBUG
+extension AppModel {
+    /// Puts a fixed plan on screen for `Screenshots` without opening the timetable or touching the network.
+    func seedForScreenshots(settings: AppSettings, journeys: [Journey], live: Bool) {
+        self.settings = settings
+        self.journeys = journeys
+        recommended = journeys.first
+        realtimeStatus = live ? .live(.now) : .off
+        lastRefresh = .now
+    }
+}
+#endif

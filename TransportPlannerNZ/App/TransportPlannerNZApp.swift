@@ -23,6 +23,9 @@ struct TransportPlannerNZApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if Screenshots.isEnabled { Screenshots.render(); return }
+        #endif
         UNUserNotificationCenter.current().delegate = self
         Task {
             do { AppLog.note("notifications allowed=\(try await LeaveNotifier.requestPermission())") }
