@@ -50,7 +50,7 @@ private final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
-private struct LeavePrompt: View {
+struct LeavePrompt: View {
     let journey: Journey
     let model: AppModel
 

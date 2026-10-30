@@ -2,6 +2,12 @@
 
 macOS menu bar app that tells you when to walk out of the office so you arrive at the bus stop just before the bus, not fifteen minutes early. Uses Auckland Transport timetable data. This is an independent community project and is not affiliated with or endorsed by Auckland Transport.
 
+![Leave at the right minute](screenshots/framed/mac/popover.png)
+
+| | |
+|---|---|
+| ![Time to go](screenshots/framed/mac/leave-now.png) | ![Every option, ranked](screenshots/framed/mac/schedule.png) |
+
 ## What it does
 
 - Downloads the public Auckland Transport GTFS timetable (no API key) into a local SQLite database, and once that copy is six days old, checks hourly and re-downloads when AT publishes a new file.
@@ -60,6 +66,16 @@ The first launch downloads and imports the timetable. Download size and import t
 ## How the plan is chosen
 
 For each candidate boarding at an origin stop, the leave time is `departure - walk - buffer`. Journeys that leave earlier and arrive later than another are dropped. The remaining journeys are scored by distance from your ideal leave time (leaving late costs more than leaving early), half the travel time, and a penalty per transfer. As the moment approaches the app polls more often; with a realtime key a late bus shifts the leave time and a cancelled one is skipped.
+
+## Screenshots
+
+`screenshots/` holds App Store images: `raw/mac` straight from the app, `framed/mac` at 2880x1800 for the listing. A Debug build renders the raw set with a fixed Auckland commute, no timetable or network needed:
+
+```sh
+build/DerivedData/Build/Products/Debug/TransportPlannerNZ.app/Contents/MacOS/TransportPlannerNZ -uiScreenshots "$PWD/screenshots/raw/mac"
+```
+
+Frame them with the headlines in `screenshots/manifest.json` using `screenshots/frame.html` as the template for headless Chrome.
 
 ## Tests
 
