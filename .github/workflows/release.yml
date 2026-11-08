@@ -11,5 +11,5 @@ jobs:
       contents: write
     with:
       setup-command: brew install xcodegen
-      build-command: ./scripts/build-dmg.sh
-      artifacts: dist/*.dmg
+      build-command: ./scripts/build-dmg.sh "$VERSION"
+      prerelease: ${{ contains(github.ref_name, '-') }}
