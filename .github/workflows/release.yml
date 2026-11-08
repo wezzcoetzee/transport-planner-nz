@@ -1,0 +1,15 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    uses: wezzcoetzee/.github/.github/workflows/macos-release.yml@main
+    permissions:
+      contents: write
+    with:
+      setup-command: brew install xcodegen
+      build-command: ./scripts/build-dmg.sh
+      artifacts: dist/*.dmg
