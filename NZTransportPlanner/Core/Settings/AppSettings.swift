@@ -18,7 +18,7 @@ struct AppSettings: Codable, Hashable, Sendable {
     var latestLeaveOffsetMinutes = 30
     var stopSearchRadiusMeters = 600.0
     var walkMetersPerSecond = 1.3
-    var boardingBufferSeconds = 90
+    var boardingBufferSeconds = 120
     var maxTransfers = 1
     /// Minutes before "leave now" at which to notify. 0 = the moment to leave.
     var reminderLeadMinutes = [10, 5, 0]
@@ -44,9 +44,11 @@ struct AppSettings: Codable, Hashable, Sendable {
 /// UserDefaults-backed store for `AppSettings`.
 enum SettingsStore {
     private static let key = "settings.v1"
+    /// Defaults domain from before the app was renamed; read once so an upgrade keeps the commute.
+    private static let legacyDomain = "org.transportplannernz.TransportPlannerNZ"
 
     static func load() -> AppSettings {
-        guard let data = UserDefaults.standard.data(forKey: key),
+        guard let data = UserDefaults.standard.data(forKey: key) ?? UserDefaults(suiteName: legacyDomain)?.data(forKey: key),
               let s = try? JSONDecoder().decode(AppSettings.self, from: data) else { return AppSettings() }
         return s
     }

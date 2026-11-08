@@ -23,6 +23,8 @@ final class LeavePanel {
         p.hidesOnDeactivate = false
         p.setFrameTopLeftPoint(Self.anchor(width: host.fittingSize.width))
         p.orderFrontRegardless()
+        NSAccessibility.post(element: p, notification: .announcementRequested,
+                             userInfo: [.announcement: "Leave now. \(journey.notificationBody)", .priority: NSAccessibilityPriorityLevel.high.rawValue])
         panel = p
         journeyID = journey.id
     }
@@ -51,18 +53,24 @@ private final class KeyablePanel: NSPanel {
 }
 
 struct LeavePrompt: View {
+    /// The bus the panel opened for; realtime updates to the same trip replace it while the panel is up.
     let journey: Journey
     let model: AppModel
 
     var body: some View {
+        let j = model.recommended?.id == journey.id ? model.recommended ?? journey : journey
         VStack(alignment: .leading, spacing: 6) {
-            Text("Leave now").font(.headline).monospacedDigit()
-            Text(journey.notificationBody).font(.caption).foregroundStyle(.secondary).monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            TimelineView(j.countdownSchedule) { ctx in
+                Text(MenuBarView.leaveText(j.leaveAt, now: ctx.date)).font(.title3.weight(.semibold)).monospacedDigit()
+            }
+            JourneyLines(journey: j)
             HStack {
-                Button("Going") { model.going() }.keyboardShortcut(.defaultAction)
-                Button("Next bus") { model.skipRecommended() }
+                // Neutral grey, not the system accent: green and orange are the only lamps.
+                Button("Going") { model.going() }.keyboardShortcut(.defaultAction).tint(Color(white: 0.35)).fontWeight(.semibold)
+                Button("Next") { model.skipRecommended() }.disabled(model.alternatives.isEmpty)
+                    .help(model.alternatives.isEmpty ? "No later option today" : "Skip to the next option")
                 Spacer()
-                Button("Not today") { model.skipToday() }.buttonStyle(.borderless)
+                Button("Not today") { model.skipToday() }.buttonStyle(.borderless).foregroundStyle(.secondary)
             }
             .controlSize(.small)
             .padding(.top, 4)

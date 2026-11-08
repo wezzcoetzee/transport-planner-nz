@@ -1,18 +1,40 @@
 {
-  "app": "Transport Planner NZ",
+  "app": "NZ Transport Planner",
   "platform": "mac",
-  "scheme": "TransportPlannerNZ",
-  "bundleId": "org.transportplannernz.TransportPlannerNZ",
+  "scheme": "NZTransportPlanner",
+  "bundleId": "org.nztransportplanner.NZTransportPlanner",
   "bg1": "#14321C",
   "bg2": "#000000",
   "text": "#FFFFFF",
   "frame": "mac",
   "template": "screenshots/frame.html",
   "compositeSize": "2880x1800",
-  "capture": "TransportPlannerNZ -uiScreenshots screenshots/raw/mac (Debug build) writes every raw PNG in one launch",
+  "capture": "./scripts/screenshots.sh renders every raw PNG (Debug build, pinned clock, en_NZ) and frames the screens below",
   "screens": [
-    { "id": "popover", "headline": "Leave at the right minute.", "subheadline": "Walk out just before the bus, not fifteen minutes early." },
-    { "id": "leave-now", "headline": "Time to go.", "subheadline": "A prompt under the menu bar that waits until you answer." },
-    { "id": "schedule", "headline": "Every option, ranked.", "subheadline": "Direct and one-transfer trips from the Auckland Transport timetable." }
+    {
+      "id": "popover",
+      "headline": "Leave at the right minute",
+      "subheadline": "Walk out just before the bus, not fifteen minutes early"
+    },
+    {
+      "id": "leave-now",
+      "headline": "Time to go",
+      "subheadline": "A prompt under the menu bar that waits until you answer"
+    },
+    {
+      "id": "schedule",
+      "headline": "Every later option",
+      "subheadline": "Direct and one-transfer trips from the Auckland Transport timetable"
+    },
+    {
+      "id": "done",
+      "headline": "On your way",
+      "subheadline": "The bus you chose stays in view until you are home"
+    },
+    {
+      "id": "settings-commute",
+      "headline": "Set it once",
+      "subheadline": "Office, home and the window you leave in, as clock times"
+    }
   ]
 }

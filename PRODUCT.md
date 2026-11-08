@@ -20,7 +20,7 @@ Success: commuters trust the countdown enough to stop checking the AT app. The t
 
 Calm, precise, quiet.
 
-Voice is a terse colleague who knows the timetable: "Leave in 12 min", "195 from Lower Albert at 5:05, home 5:23". Numbers carry the meaning; words only label them. No exclamation marks, no encouragement, no emoji.
+Voice is a terse colleague who knows the timetable: "Leave in 12 min", "195 5:05 pm from Lower Albert Street, home 5:23 pm". Numbers carry the meaning; words only label them. No exclamation marks, no encouragement, no emoji.
 
 References: Linear for restraint and typographic hierarchy; Apple Weather and Stocks for glanceable, numbers-first native surfaces.
 
@@ -35,7 +35,7 @@ References: Linear for restraint and typographic hierarchy; Apple Weather and St
 1. **One number first.** The time to leave is the whole product. Everything else is supporting evidence and sits visually below it.
 2. **Evidence, not decoration.** A route number, a stop name, an arrival time earn their place because they explain the recommendation. Nothing appears for texture.
 3. **Native by default.** System typography, standard macOS controls, standard settings layout. Familiarity is the affordance; there is nothing to learn.
-4. **Quiet until it matters.** The menu bar label is static and terse. Notifications are the only interruption, and only at the configured moments.
+4. **Quiet until it matters.** The menu bar label is static and terse. Notifications and the leave panel are the only interruptions, and only at the configured moments.
 5. **Dense and dark.** A core design constraint: true black background, white primary text, information-dense, no card or pill chrome. This overrides any generic guidance against pure black.
 
 ## Accessibility & Inclusion
