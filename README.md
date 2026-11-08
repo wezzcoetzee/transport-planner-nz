@@ -49,10 +49,19 @@ Or open `NZTransportPlanner.xcodeproj` and run. The app has no dock icon; look f
 To package a disk image for installing on another Mac:
 
 ```sh
-./scripts/build-dmg.sh   # writes dist/NZTransportPlanner-<version>.dmg
+./scripts/build-dmg.sh [version]   # writes dist/NZTransportPlanner-<version>.dmg and .zip
 ```
 
 The build is ad-hoc signed, not notarised. On first open, right-click the app and choose Open, or allow it under System Settings > Privacy & Security.
+
+To publish a release, push a version tag:
+
+```sh
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+The [shared macOS release workflow](https://github.com/wezzcoetzee/.github/blob/main/.github/workflows/macos-release.yml) runs `./scripts/build-dmg.sh` with the tag's version (without `v`) and attaches the DMG and ZIP to a GitHub Release with generated notes. Tags containing a hyphen, such as `v1.1.0-beta.1`, create prereleases.
 
 ## Setup
 
