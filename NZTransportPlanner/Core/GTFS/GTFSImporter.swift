@@ -4,21 +4,10 @@ import os
 /// Downloads the public AT GTFS zip and builds a fresh SQLite database next to the live one, then swaps it in.
 actor GTFSImporter {
     static let feedURL = URL(string: "https://gtfs.at.govt.nz/gtfs.zip")!
-    private static let log = Logger(subsystem: "org.transportplannernz.TransportPlannerNZ", category: "import")
+    private static let log = Logger(subsystem: "org.nztransportplanner.NZTransportPlanner", category: "import")
 
     enum Phase: Sendable, Equatable {
         case idle, downloading(Double), extracting, importing(String), indexing, done, failed(String)
-        var label: String {
-            switch self {
-            case .idle: "Idle"
-            case .downloading(let p): p > 0 ? "Downloading \(Int(p * 100))%" : "Downloading"
-            case .extracting: "Extracting"
-            case .importing(let f): "Importing \(f)"
-            case .indexing: "Indexing"
-            case .done: "Up to date"
-            case .failed(let m): "Failed: \(m)"
-            }
-        }
     }
 
     let destinationPath: String
@@ -46,7 +35,8 @@ actor GTFSImporter {
 
             set(.downloading(0))
             let zip = tmp.appendingPathComponent("gtfs.zip")
-            let (downloaded, _) = try await URLSession.shared.download(from: Self.feedURL)
+            let reporter = DownloadProgress { [onPhase] in onPhase?(.downloading($0)) }
+            let (downloaded, _) = try await URLSession.shared.download(from: Self.feedURL, delegate: reporter)
             try FileManager.default.moveItem(at: downloaded, to: zip)
 
             set(.extracting)
@@ -153,5 +143,25 @@ actor GTFSImporter {
         }
         try db.exec("COMMIT")
         Self.log.info("Imported \(n) rows from \(file)")
+    }
+}
+
+/// Reports download progress, which `URLSession.download(from:)` alone never does; a 30 MB wait with nothing
+/// moving looks hung. Calls back once per whole percent, from the session's delegate queue.
+private final class DownloadProgress: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    private let report: @Sendable (Double) -> Void
+    private var observation: NSKeyValueObservation?
+    private var lastPercent = -1
+
+    init(_ report: @escaping @Sendable (Double) -> Void) { self.report = report }
+
+    func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        observation = task.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+            guard let self else { return }
+            let percent = Int(progress.fractionCompleted * 100)
+            guard percent != lastPercent else { return }
+            lastPercent = percent
+            report(progress.fractionCompleted)
+        }
     }
 }
