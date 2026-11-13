@@ -32,6 +32,16 @@ flowchart LR
     Maps[Apple Maps transit ETA] -.fallback.-> Menu
 ```
 
+## Install
+
+Download the DMG from [Releases](https://github.com/wezzcoetzee/transport-planner-nz/releases) and drag NZ Transport Planner to Applications.
+
+The app is not notarized, so the first launch shows "Apple could not verify NZ Transport Planner". Click Done, then open System Settings, Privacy & Security, and click Open Anyway next to NZ Transport Planner. Or clear the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/NZTransportPlanner.app
+```
+
 ## Build
 
 Requires Xcode 26 and [xcodegen](https://github.com/yonaskolb/XcodeGen).
