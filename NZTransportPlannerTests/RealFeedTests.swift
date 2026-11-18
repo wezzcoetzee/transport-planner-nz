@@ -1,6 +1,6 @@
-import Testing
-import Foundation
 import CoreLocation
+import Foundation
+import Testing
 
 /// Opt-in end-to-end check against a real AT feed. Runs only when the feed has been extracted to `realFeedDir`:
 ///   curl -o /tmp/at_gtfs.zip https://gtfs.at.govt.nz/gtfs.zip && mkdir -p /tmp/at_gtfs && unzip -o /tmp/at_gtfs.zip -d /tmp/at_gtfs
@@ -16,15 +16,19 @@ struct RealFeedTests {
         print("IMPORT took \(Date().timeIntervalSince(t0))s, size \((try? FileManager.default.attributesOfItem(atPath: dbPath)[.size] as? Int) ?? 0) bytes")
 
         let store = try GTFSStore(path: dbPath)
-        let office = CLLocationCoordinate2D(latitude: -36.8467, longitude: 174.7659) // Queen St / Victoria St
-        let home = CLLocationCoordinate2D(latitude: -36.8549, longitude: 174.7455)   // Ponsonby Rd / Franklin Rd
-        let origin = try await store.stopsNear(office, radiusMeters: 500).map { AccessStop(stop: $0.stop, walkMeters: $0.distance * 1.3, walkSeconds: Int($0.distance * 1.3 / 1.3)) }
-        let dest = try await store.stopsNear(home, radiusMeters: 500).map { AccessStop(stop: $0.stop, walkMeters: $0.distance * 1.3, walkSeconds: Int($0.distance * 1.3 / 1.3)) }
+        let office = CLLocationCoordinate2D(latitude: -36.8467, longitude: 174.7659)  // Queen St / Victoria St
+        let home = CLLocationCoordinate2D(latitude: -36.8549, longitude: 174.7455)  // Ponsonby Rd / Franklin Rd
+        let origin = try await store.stopsNear(office, radiusMeters: 500).map {
+            AccessStop(stop: $0.stop, walkMeters: $0.distance * 1.3, walkSeconds: Int($0.distance * 1.3 / 1.3))
+        }
+        let dest = try await store.stopsNear(home, radiusMeters: 500).map {
+            AccessStop(stop: $0.stop, walkMeters: $0.distance * 1.3, walkSeconds: Int($0.distance * 1.3 / 1.3))
+        }
         print("origin stops \(origin.count), dest stops \(dest.count)")
         #expect(!origin.isEmpty && !dest.isEmpty)
 
         let tz = GTFSStore.feedTimeZone
-        let day = ServiceDay(containing: Date(timeIntervalSince1970: 1_788_912_000), timeZone: tz) // Wed 2026-09-09
+        let day = ServiceDay(containing: Date(timeIntervalSince1970: 1_788_912_000), timeZone: tz)  // Wed 2026-09-09
         let window = day.instant(atServiceSeconds: 16 * 3600 + 45 * 60)...day.instant(atServiceSeconds: 17 * 3600 + 30 * 60)
         let t1 = Date()
         let journeys = try await JourneyPlanner(store: store).plan(PlanRequest(originStops: origin, destinationStops: dest, leaveWindow: window))

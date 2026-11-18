@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 struct Place: Codable, Hashable, Sendable {
     var name: String
@@ -51,12 +51,13 @@ enum SettingsStore {
 
     static func load() -> AppSettings {
         #if DEBUG
-        let legacy: Data? = nil // Debug has its own bundle ID; the legacy domain holds a real user's commute
+            let legacy: Data? = nil  // Debug has its own bundle ID; the legacy domain holds a real user's commute
         #else
-        let legacy = UserDefaults(suiteName: legacyDomain)?.data(forKey: key)
+            let legacy = UserDefaults(suiteName: legacyDomain)?.data(forKey: key)
         #endif
         guard let data = UserDefaults.standard.data(forKey: key) ?? legacy,
-              let s = try? JSONDecoder().decode(AppSettings.self, from: data) else { return AppSettings() }
+            let s = try? JSONDecoder().decode(AppSettings.self, from: data)
+        else { return AppSettings() }
         return s
     }
 

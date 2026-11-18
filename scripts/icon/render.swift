@@ -30,8 +30,8 @@ func text(_ str: String, pt: CGFloat, weight: NSFont.Weight, color: NSColor, cen
     let sz = s.size()
     s.draw(at: CGPoint(x: centerX - sz.width / 2, y: centerY - sz.height / 2))
 }
-let green = NSColor(red: 0x30/255, green: 0xD1/255, blue: 0x58/255, alpha: 1)
-let orange = NSColor(red: 1, green: 0x9F/255, blue: 0x0A/255, alpha: 1)
+let green = NSColor(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
+let orange = NSColor(red: 1, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
 let cx = size / 2
 
 switch variant {

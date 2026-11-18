@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 /// A stop the user can walk to, with the walking time from their location.
 struct AccessStop: Hashable, Sendable, Codable {
@@ -86,9 +86,11 @@ struct JourneyPlanner: Sendable {
 
         func ride(_ board: StopTime, _ alight: StopTime, stopsBetween: Int) -> Leg? {
             guard let trip = trips[board.tripID], let route = routes[trip.routeID],
-                  let b = stops[board.stopID], let a = stops[alight.stopID] else { return nil }
-            return Leg(kind: .ride(route: route, trip: trip, board: b, alight: a, boardSequence: board.sequence, stops: stopsBetween),
-                       departure: day.instant(atServiceSeconds: board.departure), arrival: day.instant(atServiceSeconds: alight.arrival))
+                let b = stops[board.stopID], let a = stops[alight.stopID]
+            else { return nil }
+            return Leg(
+                kind: .ride(route: route, trip: trip, board: b, alight: a, boardSequence: board.sequence, stops: stopsBetween),
+                departure: day.instant(atServiceSeconds: board.departure), arrival: day.instant(atServiceSeconds: alight.arrival))
         }
         func walk(meters: Double, seconds: Int, from: Date) -> Leg {
             Leg(kind: .walk(meters: meters), departure: from, arrival: from.addingTimeInterval(TimeInterval(seconds)))
@@ -100,7 +102,8 @@ struct JourneyPlanner: Sendable {
             let path = downstream[boarding.tripID] ?? []
             let firstDeparture = day.instant(atServiceSeconds: boarding.departure)
             let leaveAt = firstDeparture.addingTimeInterval(TimeInterval(-access.walkSeconds - req.boardingBufferSeconds))
-            let walkToStop = Leg(kind: .walk(meters: access.walkMeters), departure: leaveAt, arrival: leaveAt.addingTimeInterval(TimeInterval(access.walkSeconds)))
+            let walkToStop = Leg(
+                kind: .walk(meters: access.walkMeters), departure: leaveAt, arrival: leaveAt.addingTimeInterval(TimeInterval(access.walkSeconds)))
 
             // Direct
             var best: Journey?
@@ -121,10 +124,11 @@ struct JourneyPlanner: Sendable {
                     let readyAt = st.arrival + walkSecs + req.transferBufferSeconds
                     for f in feedersByStop[near.id] ?? [] where f.board.departure >= readyAt && f.board.tripID != boarding.tripID {
                         guard let dest = destByID[f.alight.stopID],
-                              let r1 = ride(boarding, st, stopsBetween: i + 1),
-                              let r2 = ride(f.board, f.alight, stopsBetween: f.alight.sequence - f.board.sequence),
-                              case .ride(let route1, _, _, _, _, _) = r1.kind, case .ride(let route2, _, _, _, _, _) = r2.kind,
-                              route1.id != route2.id else { continue }
+                            let r1 = ride(boarding, st, stopsBetween: i + 1),
+                            let r2 = ride(f.board, f.alight, stopsBetween: f.alight.sequence - f.board.sequence),
+                            case .ride(let route1, _, _, _, _, _) = r1.kind, case .ride(let route2, _, _, _, _, _) = r2.kind,
+                            route1.id != route2.id
+                        else { continue }
                         let transferWalk = walk(meters: walkMeters, seconds: walkSecs, from: r1.arrival)
                         let j = Journey(legs: [walkToStop, r1, transferWalk, r2, walk(meters: dest.walkMeters, seconds: dest.walkSeconds, from: r2.arrival)])
                         if best.map({ j.arriveAt < $0.arriveAt }) ?? true { best = j }
@@ -141,7 +145,7 @@ struct JourneyPlanner: Sendable {
         let sorted = journeys.sorted { $0.leaveAt != $1.leaveAt ? $0.leaveAt > $1.leaveAt : $0.arriveAt < $1.arriveAt }
         var kept: [Journey] = []
         var bestArrival = Date.distantFuture
-        for j in sorted { // leaving latest first; keep only if it arrives before anything that leaves later
+        for j in sorted {  // leaving latest first; keep only if it arrives before anything that leaves later
             if j.arriveAt < bestArrival { kept.append(j); bestArrival = j.arriveAt }
         }
         return kept.sorted { $0.leaveAt < $1.leaveAt }
@@ -151,7 +155,7 @@ struct JourneyPlanner: Sendable {
 /// Bucketed lookup of stops by coordinate for transfer matching.
 struct ProximityGrid: Sendable {
     private var buckets: [Int: [Stop]] = [:]
-    private let cell = 0.003 // ~330 m latitude
+    private let cell = 0.003  // ~330 m latitude
 
     init(stops: [Stop]) {
         for s in stops { buckets[key(s.latitude, s.longitude), default: []].append(s) }
@@ -164,10 +168,12 @@ struct ProximityGrid: Sendable {
     func stops(near c: CLLocationCoordinate2D, within meters: Double) -> [Stop] {
         let origin = CLLocation(latitude: c.latitude, longitude: c.longitude)
         var out: [Stop] = []
-        for dLat in -1...1 { for dLon in -1...1 {
-            let k = key(c.latitude + Double(dLat) * cell, c.longitude + Double(dLon) * cell)
-            for s in buckets[k] ?? [] where s.location.distance(from: origin) <= meters { out.append(s) }
-        } }
+        for dLat in -1...1 {
+            for dLon in -1...1 {
+                let k = key(c.latitude + Double(dLat) * cell, c.longitude + Double(dLon) * cell)
+                for s in buckets[k] ?? [] where s.location.distance(from: origin) <= meters { out.append(s) }
+            }
+        }
         return out
     }
 }

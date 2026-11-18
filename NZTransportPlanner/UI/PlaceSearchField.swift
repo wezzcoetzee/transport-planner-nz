@@ -1,5 +1,5 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
 /// Text field with MapKit completions, resolving a selection to a `Place`.
 struct PlaceSearchField: View {
@@ -20,7 +20,7 @@ struct PlaceSearchField: View {
         if let p = place, !editing {
             LabeledContent(title) {
                 HStack {
-                    Text(p.name).lineLimit(1).truncationMode(.middle).help(p.name) // the suburb is at the end
+                    Text(p.name).lineLimit(1).truncationMode(.middle).help(p.name)  // the suburb is at the end
                     Button("Change") { editing = true }.buttonStyle(.borderless).accessibilityLabel("Change \(title.lowercased())")
                 }
             }
@@ -33,10 +33,10 @@ struct PlaceSearchField: View {
                         TextField(title, text: $query, prompt: Text("Search address or place"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
-                            .multilineTextAlignment(.leading) // text and suggestions share one left edge
+                            .multilineTextAlignment(.leading)  // text and suggestions share one left edge
                             .focused($focused)
-                            .onAppear { if editing || (autofocus && place == nil) { focused = true } } // typing goes straight in
-                            .onChange(of: autofocus) { _, on in if on, place == nil { focused = true } } // Home after Office
+                            .onAppear { if editing || (autofocus && place == nil) { focused = true } }  // typing goes straight in
+                            .onChange(of: autofocus) { _, on in if on, place == nil { focused = true } }  // Home after Office
                             .onChange(of: query) { _, q in
                                 notFound = false; resolveFailed = false
                                 completer.search(q, region: aucklandRegion) { results = $0 }
@@ -82,7 +82,8 @@ struct PlaceSearchField: View {
         let search = MKLocalSearch(request: MKLocalSearch.Request(completion: completion))
         guard let item = try? await search.start().mapItems.first else { resolveFailed = true; return }
         let c = item.location.coordinate
-        place = Place(name: [completion.title, completion.subtitle].filter { !$0.isEmpty }.joined(separator: ", "), latitude: c.latitude, longitude: c.longitude)
+        place = Place(
+            name: [completion.title, completion.subtitle].filter { !$0.isEmpty }.joined(separator: ", "), latitude: c.latitude, longitude: c.longitude)
         cancel()
     }
 

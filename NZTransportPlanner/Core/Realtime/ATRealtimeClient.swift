@@ -25,7 +25,10 @@ struct ATRealtimeClient: Sendable {
         case http(Int)
         case unauthorized
         var errorDescription: String? {
-            switch self { case .unauthorized: "AT API key rejected"; case .http(let c): "AT API HTTP \(c)" }
+            switch self {
+            case .unauthorized: "AT API key rejected";
+            case .http(let c): "AT API HTTP \(c)"
+            }
         }
     }
 
@@ -54,7 +57,8 @@ struct ATRealtimeClient: Sendable {
         var out: [String: TripUpdate] = [:]
         for e in entities {
             guard let tu = e["trip_update"] as? [String: Any], let trip = tu["trip"] as? [String: Any],
-                  let tripID = trip["trip_id"] as? String else { continue }
+                let tripID = trip["trip_id"] as? String
+            else { continue }
             let rel = trip["schedule_relationship"]
             let cancelled = (rel as? Int) == 3 || (rel as? String) == "CANCELED" || (rel as? String) == "CANCELLED"
             let updates: [[String: Any]] = (tu["stop_time_update"] as? [[String: Any]]) ?? (tu["stop_time_update"] as? [String: Any]).map { [$0] } ?? []

@@ -31,7 +31,7 @@ struct NZTransportPlannerApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
-        if Screenshots.isEnabled { Task { await Screenshots.render() }; return }
+            if Screenshots.isEnabled { Task { await Screenshots.render() }; return }
         #endif
         UNUserNotificationCenter.current().delegate = self
         AppModel.shared.askPermissionsOnce()
@@ -45,16 +45,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private func openSettingsOnLaunch() {
         let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 1, height: 1), styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: SettingsOpener { [weak self] in
-            NSApp.activate()
-            self?.launcher?.close()
-            self?.launcher = nil
-        })
+        window.contentView = NSHostingView(
+            rootView: SettingsOpener { [weak self] in
+                NSApp.activate()
+                self?.launcher?.close()
+                self?.launcher = nil
+            })
         window.orderFront(nil)
         launcher = window
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
+        -> UNNotificationPresentationOptions
+    {
         [.banner, .sound]
     }
 
@@ -69,5 +72,9 @@ private struct SettingsOpener: View {
     let done: () -> Void
     @Environment(\.openSettings) private var openSettings
 
-    var body: some View { Color.clear.onAppear { openSettings(); done() } }
+    var body: some View {
+        Color.clear.onAppear {
+            openSettings(); done()
+        }
+    }
 }

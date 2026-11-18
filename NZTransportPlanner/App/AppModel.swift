@@ -10,9 +10,9 @@ import UserNotifications
 final class AppModel {
     nonisolated static let dbPath: String = {
         #if DEBUG
-        let folder = "NZTransportPlanner Debug" // a Debug build never shares a timetable or log with an installed copy
+            let folder = "NZTransportPlanner Debug"  // a Debug build never shares a timetable or log with an installed copy
         #else
-        let folder = "NZTransportPlanner"
+            let folder = "NZTransportPlanner"
         #endif
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(folder, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -106,7 +106,7 @@ final class AppModel {
     private var store: GTFSStore?
     var hasTimetable: Bool {
         #if DEBUG
-        if demoStops != nil { return true }
+            if demoStops != nil { return true }
         #endif
         return store != nil
     }
@@ -131,15 +131,15 @@ final class AppModel {
     private var planFailed = false
     private var stopsResolvedFor: (Place?, Place?, Double, Double, Set<String>)?
     #if DEBUG
-    /// Stand-in stop lists for `Screenshots`, which never opens a timetable.
-    @ObservationIgnored fileprivate var demoStops: ((Place) -> [(stop: Stop, distance: Double)])?
+        /// Stand-in stop lists for `Screenshots`, which never opens a timetable.
+        @ObservationIgnored fileprivate var demoStops: ((Place) -> [(stop: Stop, distance: Double)])?
     #endif
 
     private init() {
         settings = SettingsStore.load()
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         #if DEBUG
-        guard !Screenshots.isEnabled else { return }
+            guard !Screenshots.isEnabled else { return }
         #endif
         Task { [weak self, importer] in await importer.observe { [weak self] p in Task { @MainActor in self?.importPhase = p } } }
         Task { await bootstrap() }
@@ -154,7 +154,7 @@ final class AppModel {
             Task { @MainActor in self?.startLoop() }
         }
         if GTFSStore.exists(at: Self.dbPath) { await openStore() }
-        startLoop() // shows the Apple Maps estimate while a first download runs
+        startLoop()  // shows the Apple Maps estimate while a first download runs
     }
 
     private func openStore() async {
@@ -216,7 +216,7 @@ final class AppModel {
         AppLog.note("presence: \(before) -> \(presence)")
         if presence == .away { leavePanel.close() }
         updateMenuTitle()
-        if presence == .atOffice { Task { await refresh() } } // a reminder may have come due while away
+        if presence == .atOffice { Task { await refresh() } }  // a reminder may have come due while away
     }
 
     /// Notification and location prompts wait until both places are set, so they arrive with an obvious reason and
@@ -229,12 +229,13 @@ final class AppModel {
             onUpdate: { [weak self] in self?.locationChanged($0) },
             onError: { [weak self] in
                 AppLog.error("location failed: \($0)")
-                self?.locationDenied = true // treated like "off": reminders fire anywhere, and Settings says so
+                self?.locationDenied = true  // treated like "off": reminders fire anywhere, and Settings says so
             })
         Task {
-            do { AppLog.note("notifications allowed=\(try await LeaveNotifier.requestPermission())") }
-            catch { AppLog.error("notification permission failed: \(error)") }
-            NotificationCenter.default.post(name: .notificationPermissionAnswered, object: nil) // hints re-check now
+            do { AppLog.note("notifications allowed=\(try await LeaveNotifier.requestPermission())") } catch {
+                AppLog.error("notification permission failed: \(error)")
+            }
+            NotificationCenter.default.post(name: .notificationPermissionAnswered, object: nil)  // hints re-check now
         }
     }
 
@@ -265,13 +266,13 @@ final class AppModel {
         menuSymbol = "bus"
         if let done = doneToday {
             menuSymbol = done.going ? "checkmark.circle" : "moon"
-            menuAccessibilityLabel = headline // "On your way", then "Done for today" once home
+            menuAccessibilityLabel = headline  // "On your way", then "Done for today" once home
         } else if presence == .away, recommended != nil || fallback != nil {
-            menuAccessibilityLabel = "Away from the office" // no countdown when there is no office to leave
+            menuAccessibilityLabel = "Away from the office"  // no countdown when there is no office to leave
         } else if let f = fallback {
             let mins = Int((f.departure.timeIntervalSinceNow / 60).rounded(.down))
             menuTitle = mins <= 0 ? "Go" : "~" + (mins < Self.clockThresholdMinutes ? "\(mins)m" : f.departure.boardClock)
-            setUrgency(minutes: mins) // an estimate's "Go" means the same as a plan's
+            setUrgency(minutes: mins)  // an estimate's "Go" means the same as a plan's
             menuAccessibilityLabel = Self.spokenEstimate(f.departure, now: .now)
         } else if let r = recommended {
             if case .ride(let route, _, _, _, _, _) = r.firstRide.kind { menuSymbol = route.symbolName }
@@ -282,19 +283,19 @@ final class AppModel {
         } else if !settings.isConfigured {
             menuAccessibilityLabel = "NZ Transport Planner. Set up your commute"
         } else if awaitingTimetable, importActivity != nil {
-            menuSymbol = "arrow.down.circle" // a retry in progress outranks the last failure
+            menuSymbol = "arrow.down.circle"  // a retry in progress outranks the last failure
             menuAccessibilityLabel = headline
         } else if hasError {
             menuSymbol = "exclamationmark.triangle"
             menuAccessibilityLabel = headline
         } else if nothingToday {
-            menuSymbol = "moon" // the bare bus then only means "not set up" or "away"
+            menuSymbol = "moon"  // the bare bus then only means "not set up" or "away"
             menuAccessibilityLabel = headline
         } else if awaitingTimetable {
             menuSymbol = "arrow.down.circle"
             menuAccessibilityLabel = headline
         } else if missingStops {
-            menuSymbol = "exclamationmark.triangle" // a state with a fix in Settings
+            menuSymbol = "exclamationmark.triangle"  // a state with a fix in Settings
             menuAccessibilityLabel = headline
         } else {
             menuAccessibilityLabel = headline
@@ -382,7 +383,7 @@ final class AppModel {
     /// Saves at once but replans after a pause, so typing a key or tapping a stepper is one plan, not dozens.
     private func settingsChanged() {
         #if DEBUG
-        guard !Screenshots.isEnabled else { return } // demo settings must never replace the user's own
+            guard !Screenshots.isEnabled else { return }  // demo settings must never replace the user's own
         #endif
         SettingsStore.save(settings)
         settingsTask?.cancel()
@@ -402,7 +403,7 @@ final class AppModel {
             if settings.launchAtLogin { try service.register() } else { try service.unregister() }
         } catch {
             AppLog.error("launch at login failed: \(error)")
-            settings.launchAtLogin = service.status == .enabled // the toggle shows what macOS actually did
+            settings.launchAtLogin = service.status == .enabled  // the toggle shows what macOS actually did
             loginItemRefused = true
         }
     }
@@ -436,7 +437,7 @@ final class AppModel {
 
     private func finishDay(going: Bool, journey: Journey?) {
         dayDone = DayDone(day: todayKey, going: going, journey: journey)
-        skipped = [] // nothing left to undo once the day is settled
+        skipped = []  // nothing left to undo once the day is settled
         clearPlan(going ? "On your way" : "Not today")
         fallback = nil
         LeaveNotifier.clearDelivered()
@@ -518,7 +519,7 @@ final class AppModel {
         planFailed = false
         missingStops = false
         nothingToday = false
-        notifier.clearIfStale(now: .now) // a reminder for a bus that left must not outlive the plan that made it
+        notifier.clearIfStale(now: .now)  // a reminder for a bus that left must not outlive the plan that made it
         guard let office = settings.office, let home = settings.home else {
             clearPlan(settings.office == nil && settings.home == nil ? "Set up your commute" : settings.office == nil ? "Set your office" : "Set your home")
             fallback = nil; return
@@ -536,7 +537,8 @@ final class AppModel {
         let window = settings.leaveWindow(on: now, in: GTFSStore.feedTimeZone)
         // Before the window opens, search just the window. Once inside or past it, keep searching from now
         // so there is always a "next best" option after the ideal one is missed.
-        let searchWindow = now < window.lowerBound
+        let searchWindow =
+            now < window.lowerBound
             ? window
             : now.addingTimeInterval(-60)...max(window.upperBound, now.addingTimeInterval(90 * 60))
         let fallbackAt = max(now, window.lowerBound)
@@ -551,9 +553,11 @@ final class AppModel {
             try await resolveStops(store: store, office: office, home: home)
             guard !originStops.isEmpty, !destinationStops.isEmpty else {
                 missingStops = true
-                await useFallback(office: office, home: home, at: fallbackAt, reason: originStops.isEmpty
-                    ? (originAllOff ? "All stops near the office are off" : "No stops near the office")
-                    : (destinationAllOff ? "All stops near home are off" : "No stops near home"))
+                await useFallback(
+                    office: office, home: home, at: fallbackAt,
+                    reason: originStops.isEmpty
+                        ? (originAllOff ? "All stops near the office are off" : "No stops near the office")
+                        : (destinationAllOff ? "All stops near home are off" : "No stops near home"))
                 return
             }
             var req = PlanRequest(originStops: originStops, destinationStops: destinationStops, leaveWindow: searchWindow)
@@ -562,7 +566,7 @@ final class AppModel {
             req.walkMetersPerSecond = settings.walkMetersPerSecond
             var planned = try await JourneyPlanner(store: store).plan(req)
             planned = await applyRealtime(to: planned)
-            guard doneToday == nil else { return } // "Going" or "Not today" landed while planning
+            guard doneToday == nil else { return }  // "Going" or "Not today" landed while planning
             journeys = planned
             // A skipped bus that has gone can never come back, so Previous only offers what it would restore. Its
             // leave time follows realtime while it is planned; one realtime drops for a while keeps the last known time.
@@ -573,30 +577,34 @@ final class AppModel {
             recommended = bestJourney(now: now)
             lastRefresh = now
             hasError = false
-            AppLog.note("planned in \(Date().timeIntervalSince(started))s: \(planned.count) journeys, recommended \(self.recommended?.summary ?? "none") leaving \(self.recommended?.leaveAt.description ?? "-")")
+            AppLog.note(
+                "planned in \(Date().timeIntervalSince(started))s: \(planned.count) journeys, recommended \(self.recommended?.summary ?? "none") leaving \(self.recommended?.leaveAt.description ?? "-")"
+            )
             // The prompt is about one bus; once the plan moves on it is stale.
             if leavePanel.journeyID != recommended?.id { leavePanel.close() }
             if let r = recommended {
                 fallback = nil
                 // Away from the office the plan stays visible but quiet, and the schedule does not advance.
                 guard presence != .away,
-                      let reminder = notifier.evaluate(journey: r, windowEnd: window.upperBound, leads: settings.reminderLeadMinutes, now: now)
+                    let reminder = notifier.evaluate(journey: r, windowEnd: window.upperBound, leads: settings.reminderLeadMinutes, now: now)
                 else { return }
                 switch reminder {
                 case .lead(0): leavePanel.show(model: self); AppLog.note("notified: leave now for \(r.summary)")
                 case .lead(let lead): AppLog.note("notified: \(lead) min lead for \(r.summary)")
                 case .missed: leavePanel.close(); AppLog.note("notified: missed, next \(r.summary)")
                 }
-                do { try await notifier.post(reminder, journey: r, now: now) }
-                catch { AppLog.error("notification failed: \(error)") }
+                do { try await notifier.post(reminder, journey: r, now: now) } catch { AppLog.error("notification failed: \(error)") }
             } else {
                 // The timetable answered: there is nothing to catch. An estimate here would invent a bus (often
                 // tomorrow's, or one just skipped), so only the status shows; Maps stays in the footer.
                 let t = { (d: Date) in d.sentenceClock }
                 let catchable = planned.filter { !skippedIDs.contains($0.id) && $0.leaveAt >= now.addingTimeInterval(-30) }
-                clearPlan(planned.isEmpty ? "No services between \(t(window.lowerBound)) and \(t(window.upperBound))"
-                    : !catchable.isEmpty && catchable.allSatisfy(\.cancelled) ? "Remaining services cancelled"
-                    : planned.allSatisfy { skippedIDs.contains($0.id) } ? "No later option today" : "No more services today")
+                clearPlan(
+                    planned.isEmpty
+                        ? "No services between \(t(window.lowerBound)) and \(t(window.upperBound))"
+                        : !catchable.isEmpty && catchable.allSatisfy(\.cancelled)
+                            ? "Remaining services cancelled"
+                            : planned.allSatisfy { skippedIDs.contains($0.id) } ? "No later option today" : "No more services today")
                 fallback = nil; nothingToday = true
             }
         } catch {
@@ -620,7 +628,7 @@ final class AppModel {
         if let k = stopsResolvedFor, k == key { return }
         let origin = try await access(store, office)
         let destination = try await access(store, home)
-        guard self.store === store else { return } // a new timetable landed mid-lookup; the next pass redoes it
+        guard self.store === store else { return }  // a new timetable landed mid-lookup; the next pass redoes it
         originStops = origin.usable; destinationStops = destination.usable
         originAllOff = origin.allOff; destinationAllOff = destination.allOff
         stopsResolvedFor = key
@@ -638,9 +646,11 @@ final class AppModel {
     private func applyRealtime(to journeys: [Journey]) async -> [Journey] {
         let key = settings.atSubscriptionKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty, !journeys.isEmpty else { realtimeStatus = .off; return journeys }
-        let tripIDs = Array(Set(journeys.compactMap { j -> String? in
-            if case .ride(_, let t, _, _, _, _) = j.firstRide.kind { t.id } else { nil }
-        }))
+        let tripIDs = Array(
+            Set(
+                journeys.compactMap { j -> String? in
+                    if case .ride(_, let t, _, _, _, _) = j.firstRide.kind { t.id } else { nil }
+                }))
         do {
             let updates = try await ATRealtimeClient(subscriptionKey: key).tripUpdates(for: tripIDs)
             realtimeStatus = .live(Date())
@@ -655,7 +665,7 @@ final class AppModel {
     /// All stops within range of a place, for the settings UI. Includes excluded ones so they can be re-enabled.
     func candidateStops(for place: Place) async -> [(stop: Stop, distance: Double)] {
         #if DEBUG
-        if let demoStops { return demoStops(place) }
+            if let demoStops { return demoStops(place) }
         #endif
         guard let store else { return [] }
         return (try? await store.stopsNear(place.coordinate, radiusMeters: settings.stopSearchRadiusMeters)) ?? []
@@ -669,38 +679,40 @@ final class AppModel {
         case LeaveNotifier.goingAction: going(journeyID: journeyID)
         case LeaveNotifier.snoozeAction: if journeyID == nil || journeyID == recommended?.id { skipRecommended() }
         case LeaveNotifier.skipAction: skipToday()
-        case UNNotificationDefaultActionIdentifier: if recommended != nil, presence != .away { leavePanel.show(model: self) } // show the plan
+        case UNNotificationDefaultActionIdentifier: if recommended != nil, presence != .away { leavePanel.show(model: self) }  // show the plan
         default: break
         }
     }
 }
 
 #if DEBUG
-extension AppModel {
-    /// Puts a fixed state on screen for `Screenshots` without opening the timetable or touching the network.
-    /// Settings are assigned before the rest so the debounced replan never fires before the app quits.
-    func seedForScreenshots(settings: AppSettings, journeys: [Journey] = [], live: Bool = false, status: String = "",
-                            phase: GTFSImporter.Phase = .idle, fallback: AppleTransitFallback.Estimate? = nil,
-                            done: Bool? = nil, location: CLLocation? = nil, feedVersion: String? = nil,
-                            stops: ((Place) -> [(stop: Stop, distance: Double)])? = nil, skipped: [String] = []) {
-        self.settings = settings
-        self.journeys = journeys
-        recommended = done == nil ? journeys.first : nil
-        realtimeStatus = live ? .live(.now) : .off
-        lastRefresh = .now
-        statusMessage = status
-        importPhase = phase
-        awaitingTimetable = phase != .idle
-        self.fallback = fallback
-        dayDone = done.map { DayDone(day: todayKey, going: $0, journey: $0 ? journeys.first : nil) }
-        self.location = location
-        self.feedVersion = feedVersion
-        importedAt = feedVersion == nil ? nil : .now.addingTimeInterval(-2 * 24 * 3600)
-        demoStops = stops
-        self.skipped = skipped.map { Skip(id: $0, leaveAt: .distantFuture) }
-        updateMenuTitle()
+    extension AppModel {
+        /// Puts a fixed state on screen for `Screenshots` without opening the timetable or touching the network.
+        /// Settings are assigned before the rest so the debounced replan never fires before the app quits.
+        func seedForScreenshots(
+            settings: AppSettings, journeys: [Journey] = [], live: Bool = false, status: String = "",
+            phase: GTFSImporter.Phase = .idle, fallback: AppleTransitFallback.Estimate? = nil,
+            done: Bool? = nil, location: CLLocation? = nil, feedVersion: String? = nil,
+            stops: ((Place) -> [(stop: Stop, distance: Double)])? = nil, skipped: [String] = []
+        ) {
+            self.settings = settings
+            self.journeys = journeys
+            recommended = done == nil ? journeys.first : nil
+            realtimeStatus = live ? .live(.now) : .off
+            lastRefresh = .now
+            statusMessage = status
+            importPhase = phase
+            awaitingTimetable = phase != .idle
+            self.fallback = fallback
+            dayDone = done.map { DayDone(day: todayKey, going: $0, journey: $0 ? journeys.first : nil) }
+            self.location = location
+            self.feedVersion = feedVersion
+            importedAt = feedVersion == nil ? nil : .now.addingTimeInterval(-2 * 24 * 3600)
+            demoStops = stops
+            self.skipped = skipped.map { Skip(id: $0, leaveAt: .distantFuture) }
+            updateMenuTitle()
+        }
     }
-}
 #endif
 
 extension Notification.Name {

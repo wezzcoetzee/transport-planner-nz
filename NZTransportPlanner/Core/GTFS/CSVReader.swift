@@ -68,7 +68,7 @@ struct CSVReader: Sequence, IteratorProtocol {
                 case UInt8(ascii: "\n"):
                     fields.append(String(decoding: field, as: UTF8.self))
                     buffer = Data(buffer.suffix(from: buffer.startIndex + i))
-                    if fields.count == 1 && fields[0].isEmpty { return nextRow() } // blank line
+                    if fields.count == 1 && fields[0].isEmpty { return nextRow() }  // blank line
                     return fields
                 default: field.append(byte)
                 }

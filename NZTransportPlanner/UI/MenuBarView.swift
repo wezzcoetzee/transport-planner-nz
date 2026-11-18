@@ -84,13 +84,18 @@ struct MenuBarView: View {
     @ViewBuilder private var realtimeBadge: some View {
         // Without an AT key there is no badge: the absence of "Live" says it.
         switch model.realtimeStatus {
-        case .live(let at): Label("Live", systemImage: "dot.radiowaves.left.and.right").foregroundStyle(.green)
-            .help("Live delays at \(at.sentenceClock)")
+        case .live(let at):
+            Label("Live", systemImage: "dot.radiowaves.left.and.right").foregroundStyle(.green)
+                .help("Live delays at \(at.sentenceClock)")
         case .rejected:
             // Only a rejected key has a fix in Settings; a network failure has nothing to open.
-            Button { showSettings(.data) } label: { Label("Live unavailable", systemImage: "exclamationmark.triangle") }
-                .buttonStyle(.borderless).foregroundStyle(.orange)
-                .help("AT key rejected. Open the Data tab").accessibilityHint("AT key rejected. Opens Settings")
+            Button {
+                showSettings(.data)
+            } label: {
+                Label("Live unavailable", systemImage: "exclamationmark.triangle")
+            }
+            .buttonStyle(.borderless).foregroundStyle(.orange)
+            .help("AT key rejected. Open the Data tab").accessibilityHint("AT key rejected. Opens Settings")
         case .unreachable:
             Label("Live unavailable", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 .help("Could not reach AT for live delays. Using timetable times")
@@ -117,8 +122,9 @@ struct MenuBarView: View {
         if !others.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(Array(others)) {
-                    AlternativeRow(journey: $0, showsStop: $0.firstBoardStop != r.firstBoardStop,
-                                   showsMode: $0.firstRoute?.type != r.firstRoute?.type)
+                    AlternativeRow(
+                        journey: $0, showsStop: $0.firstBoardStop != r.firstBoardStop,
+                        showsMode: $0.firstRoute?.type != r.firstRoute?.type)
                 }
             }
         }
@@ -127,7 +133,7 @@ struct MenuBarView: View {
     /// Evidence under a headline with no plan: the bus you are on your way to, or the Apple Maps estimate and why.
     @ViewBuilder private var statusDetail: some View {
         let reason = model.importProgress ?? (model.fallback == nil ? nil : model.headline)
-        let caught = model.doneToday?.journey.flatMap { $0.arriveAt > .now ? $0 : nil } // gone once you are home
+        let caught = model.doneToday?.journey.flatMap { $0.arriveAt > .now ? $0 : nil }  // gone once you are home
         if let caught { JourneyLines(journey: caught) }
         if model.fallback != nil || reason != nil {
             VStack(alignment: .leading, spacing: 2) {
@@ -170,14 +176,18 @@ struct MenuBarView: View {
             Spacer()
             // Maps is about this journey, so it stays beside the answers; app-level actions go behind the gear.
             if let o = model.settings.office, let h = model.settings.home {
-                Button { AppleTransitFallback.openInMaps(from: o, to: h) } label: { Image(systemName: "map") }
-                    .accessibilityLabel("Open in Apple Maps").help("Open this commute in Apple Maps")
+                Button {
+                    AppleTransitFallback.openInMaps(from: o, to: h)
+                } label: {
+                    Image(systemName: "map")
+                }
+                .accessibilityLabel("Open in Apple Maps").help("Open this commute in Apple Maps")
             }
             appMenu
         }
         .buttonStyle(FooterButtonStyle())
         .lineLimit(1).fixedSize(horizontal: false, vertical: true)
-        .font(.callout) // the answers are the title size, not the smallest text on the board
+        .font(.callout)  // the answers are the title size, not the smallest text on the board
     }
 
     /// Settings, Refresh and Quit: rare actions, kept out of the answer row so a stray click cannot quit the app.
@@ -195,9 +205,9 @@ struct MenuBarView: View {
             Image(systemName: "gearshape")
         }
         .menuStyle(.borderlessButton)
-        .controlSize(.small) // AppKit draws the menu at its own size; small matches the callout-sized Maps icon
+        .controlSize(.small)  // AppKit draws the menu at its own size; small matches the callout-sized Maps icon
         .fixedSize()
-        .padding(.leading, -6) // AppKit insets the menu button; this keeps the footer's 12 pt gap beside Maps
+        .padding(.leading, -6)  // AppKit insets the menu button; this keeps the footer's 12 pt gap beside Maps
         .accessibilityLabel("Settings, refresh and quit").help("Settings, refresh and quit")
     }
 
@@ -291,7 +301,7 @@ struct RecommendedRow: View {
                     if leg.id == journey.rides.last?.id {
                         Spacer(minLength: 8)
                         Text("home \(journey.arriveAt.boardClock)").monospacedDigit()
-                            .foregroundStyle(.secondary).fixedSize() // evidence, dimmed like every arrival line; never squeezed
+                            .foregroundStyle(.secondary).fixedSize()  // evidence, dimmed like every arrival line; never squeezed
                     }
                 }
             }
@@ -344,7 +354,7 @@ struct AlternativeRow: View {
             HStack(spacing: 4) {
                 Group {
                     if showsMode, let route = journey.firstRoute { Image(systemName: route.symbolName) }
-                    Text(journey.summary).fontWeight(.semibold).lineLimit(1).layoutPriority(1) // routes outlast the stop name
+                    Text(journey.summary).fontWeight(.semibold).lineLimit(1).layoutPriority(1)  // routes outlast the stop name
                 }
                 .opacity(dim)
                 // A real delay is a lamp, so it stays at full strength while the rest of the row recedes.

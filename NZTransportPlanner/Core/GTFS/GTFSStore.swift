@@ -1,10 +1,12 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 /// Read side of the imported GTFS feed. All queries run on this actor.
 actor GTFSStore {
     static let feedTimeZone = TimeZone(identifier: "Pacific/Auckland")!
-    static let feedCalendar: Calendar = { var c = Calendar(identifier: .gregorian); c.timeZone = feedTimeZone; return c }()
+    static let feedCalendar: Calendar = {
+        var c = Calendar(identifier: .gregorian); c.timeZone = feedTimeZone; return c
+    }()
 
     /// "2026-10-20" for the feed's local day; keys per-day state such as reminders and skips.
     static func dayKey(_ date: Date) -> String {
@@ -44,7 +46,8 @@ actor GTFSStore {
             bind: [coordinate.latitude - dLat, coordinate.latitude + dLat, coordinate.longitude - dLon, coordinate.longitude + dLon],
             map: Self.stop)
         let origin = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        return rows
+        return
+            rows
             .map { ($0, $0.location.distance(from: origin)) }
             .filter { $0.1 <= radiusMeters }
             .sorted { $0.1 < $1.1 }
@@ -59,8 +62,9 @@ actor GTFSStore {
     }
 
     private static func stop(_ s: SQLiteConnection.Statement) -> Stop {
-        Stop(id: s.text(0), code: s.text(1), name: s.text(2), latitude: s.double(3), longitude: s.double(4),
-             parentStation: s.isNull(5) || s.text(5).isEmpty ? nil : s.text(5))
+        Stop(
+            id: s.text(0), code: s.text(1), name: s.text(2), latitude: s.double(3), longitude: s.double(4),
+            parentStation: s.isNull(5) || s.text(5).isEmpty ? nil : s.text(5))
     }
 
     // MARK: Calendar
@@ -68,9 +72,11 @@ actor GTFSStore {
     func activeServiceIDs(on day: ServiceDay) throws -> Set<String> {
         let column = ["", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][day.weekday]
         let date = day.yyyymmdd
-        var active = Set(try db.query(
-            "SELECT service_id FROM calendar WHERE \(column) = 1 AND start_date <= ? AND end_date >= ?",
-            bind: [date, date]) { $0.text(0) })
+        var active = Set(
+            try db.query(
+                "SELECT service_id FROM calendar WHERE \(column) = 1 AND start_date <= ? AND end_date >= ?",
+                bind: [date, date]
+            ) { $0.text(0) })
         for row in try db.query("SELECT service_id, exception_type FROM calendar_dates WHERE date = ?", bind: [date], map: { ($0.text(0), $0.int(1)) }) {
             if row.1 == 1 { active.insert(row.0) } else { active.remove(row.0) }
         }
@@ -97,7 +103,8 @@ actor GTFSStore {
     /// All stop_times after `sequence` on each trip, keyed by trip.
     func downstreamStops(of trips: [(tripID: String, afterSequence: Int)]) throws -> [String: [StopTime]] {
         guard !trips.isEmpty else { return [:] }
-        let stmt = try db.prepare("SELECT trip_id, stop_id, stop_sequence, arrival, departure FROM stop_times WHERE trip_id = ? AND stop_sequence > ? ORDER BY stop_sequence")
+        let stmt = try db.prepare(
+            "SELECT trip_id, stop_id, stop_sequence, arrival, departure FROM stop_times WHERE trip_id = ? AND stop_sequence > ? ORDER BY stop_sequence")
         var out: [String: [StopTime]] = [:]
         for t in trips {
             stmt.reset(); stmt.bind(t.tripID, t.afterSequence)
@@ -111,7 +118,8 @@ actor GTFSStore {
     /// Stop times on trips that will later reach any destination stop today, departing within the window.
     /// Returned rows are potential boarding points for the final leg; `destinationArrival` is when that trip reaches the destination.
     func feederLegs(toward destinationStopIDs: [String], departingBetween from: Int, and to: Int, services: Set<String>)
-    throws -> [(board: StopTime, alight: StopTime)] {
+        throws -> [(board: StopTime, alight: StopTime)]
+    {
         guard !destinationStopIDs.isEmpty, !services.isEmpty else { return [] }
         return try db.query(
             """
@@ -127,10 +135,13 @@ actor GTFSStore {
             FROM reaching r JOIN stop_times b ON b.trip_id = r.trip_id AND b.stop_sequence < r.stop_sequence
             WHERE b.departure BETWEEN ? AND ?
             """,
-            bind: destinationStopIDs.map { $0 as SQLiteBindable } + [from, to + 3 * 3600] + services.map { $0 as SQLiteBindable } + [from, to]) { s in
-                (Self.stopTime(s),
-                 StopTime(tripID: s.text(0), stopID: s.text(5), sequence: s.int(6), arrival: s.int(7), departure: s.int(8)))
-            }
+            bind: destinationStopIDs.map { $0 as SQLiteBindable } + [from, to + 3 * 3600] + services.map { $0 as SQLiteBindable } + [from, to]
+        ) { s in
+            (
+                Self.stopTime(s),
+                StopTime(tripID: s.text(0), stopID: s.text(5), sequence: s.int(6), arrival: s.int(7), departure: s.int(8))
+            )
+        }
     }
 
     private static func stopTime(_ s: SQLiteConnection.Statement) -> StopTime {
@@ -147,7 +158,10 @@ actor GTFSStore {
 
     func routes(ids: [String]) throws -> [String: Route] {
         guard !ids.isEmpty else { return [:] }
-        let rows = try db.query("SELECT route_id, route_short_name, route_long_name, route_type, route_color FROM routes WHERE route_id IN (\(sqlPlaceholders(ids.count)))", bind: ids) {
+        let rows = try db.query(
+            "SELECT route_id, route_short_name, route_long_name, route_type, route_color FROM routes WHERE route_id IN (\(sqlPlaceholders(ids.count)))",
+            bind: ids
+        ) {
             Route(id: $0.text(0), shortName: $0.text(1), longName: $0.text(2), type: $0.int(3), color: $0.text(4).isEmpty ? nil : $0.text(4))
         }
         return Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
