@@ -30,7 +30,9 @@ struct ServiceDay: Hashable, Sendable {
         var start = cal.startOfDay(for: instant)
         if dayOffset != 0 { start = cal.date(byAdding: .day, value: dayOffset, to: start)! }
         self.timeZone = timeZone
-        self.midnight = start
+        // GTFS counts from noon minus 12 h, which is midnight except on daylight saving days, when it is an hour off.
+        let noon = cal.date(bySettingHour: 12, minute: 0, second: 0, of: start) ?? start.addingTimeInterval(12 * 3600)
+        self.midnight = noon.addingTimeInterval(-12 * 3600)
         self.date = cal.dateComponents([.year, .month, .day, .weekday], from: start)
     }
 

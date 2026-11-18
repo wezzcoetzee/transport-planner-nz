@@ -24,7 +24,8 @@ final class LeavePanel {
         p.setFrameTopLeftPoint(Self.anchor(width: host.fittingSize.width))
         p.orderFrontRegardless()
         NSAccessibility.post(element: p, notification: .announcementRequested,
-                             userInfo: [.announcement: "Leave now. \(journey.notificationBody)", .priority: NSAccessibilityPriorityLevel.high.rawValue])
+                             userInfo: [.announcement: "\(AppModel.spokenLeave(journey.leaveAt, now: .now)). \(journey.notificationBody)",
+                                        .priority: NSAccessibilityPriorityLevel.high.rawValue])
         panel = p
         journeyID = journey.id
     }
@@ -47,6 +48,24 @@ final class LeavePanel {
     }
 }
 
+/// The answer the panel is asking for, filled so it stands out at a glance. AppKit draws default and prominent
+/// buttons plain in a window without focus, and this panel never takes focus, so the fill is drawn here.
+/// Neutral grey, not the system accent: green and orange are the only lamps.
+private struct FilledAnswerStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: NSFont.smallSystemFontSize, weight: .semibold)) // the small control size of Next beside it
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10).padding(.vertical, 3)
+            .background(Color(white: configuration.isPressed ? 0.28 : 0.35), in: .rect(cornerRadius: 5))
+            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.white.opacity(isFocused ? 0.5 : 0)))
+            .opacity(isEnabled ? 1 : 0.4)
+    }
+}
+
 /// Borderless panels refuse key status by default, which would leave Return without a default button.
 private final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
@@ -62,15 +81,18 @@ struct LeavePrompt: View {
         VStack(alignment: .leading, spacing: 6) {
             TimelineView(j.countdownSchedule) { ctx in
                 Text(MenuBarView.leaveText(j.leaveAt, now: ctx.date)).font(.title3.weight(.semibold)).monospacedDigit()
+                    .accessibilityLabel(AppModel.spokenLeave(j.leaveAt, now: ctx.date))
             }
             JourneyLines(journey: j)
             HStack {
-                // Neutral grey, not the system accent: green and orange are the only lamps.
-                Button("Going") { model.going() }.keyboardShortcut(.defaultAction).tint(Color(white: 0.35)).fontWeight(.semibold)
+                Button("Going") { model.going() }.keyboardShortcut(.defaultAction).help("Leaving now (↩)")
+                    .buttonStyle(FilledAnswerStyle())
+                // Keys match the popover's; like Return they work once the panel has been clicked.
                 Button("Next") { model.skipRecommended() }.disabled(model.alternatives.isEmpty)
-                    .help(model.alternatives.isEmpty ? "No later option today" : "Skip to the next option")
+                    .keyboardShortcut(.rightArrow, modifiers: []).help(model.nextHelp)
                 Spacer()
                 Button("Not today") { model.skipToday() }.buttonStyle(.borderless).foregroundStyle(.secondary)
+                    .keyboardShortcut(.delete).help("No reminders until tomorrow (⌘⌫)")
             }
             .controlSize(.small)
             .padding(.top, 4)

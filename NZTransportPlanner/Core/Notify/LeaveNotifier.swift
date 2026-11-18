@@ -94,9 +94,9 @@ final class LeaveNotifier {
         let s = await UNUserNotificationCenter.current().notificationSettings()
         return switch (s.authorizationStatus, s.alertStyle) {
         case (.notDetermined, _): nil // the system prompt is on its way (asked once both places are set)
-        case (.denied, _): "Notifications are off"
-        case (_, .banner): "Notifications disappear. Set the style to Persistent"
-        case (_, .none): "Notifications are hidden. Set the style to Persistent"
+        case (.denied, _): "Notifications are off. Reminders can't reach you"
+        case (_, .banner): "Reminders vanish after a few seconds. Set the alert style to Persistent"
+        case (_, .none): "Reminders are hidden. Set the alert style to Persistent"
         default: nil
         }
     }
@@ -114,9 +114,9 @@ final class LeaveNotifier {
         let minutes = max(0, journey.minutesUntilLeave(from: now))
         let isNow = reminder == .lead(0)
         switch reminder {
-        case .missed: content.title = "Missed it. Leave at \(journey.leaveAt.formatted(date: .omitted, time: .shortened))"
+        case .missed: content.title = "Missed it. Leave at \(journey.leaveAt.sentenceClock)"
         // Persistent alerts stay up, so the title carries the clock time as well as the countdown.
-        case .lead: content.title = minutes <= 0 ? "Leave now" : "Leave in \(minutes) min, at \(journey.leaveAt.formatted(date: .omitted, time: .shortened))"
+        case .lead: content.title = minutes <= 0 ? "Leave now" : "Leave in \(minutes) min, at \(journey.leaveAt.sentenceClock)"
         }
         content.body = journey.notificationBody
         content.sound = .default // critical sounds need an Apple entitlement this ad-hoc signed app cannot have
@@ -147,18 +147,18 @@ extension Journey {
     /// "INN 5:08 pm from Lower Albert Street": the bus and the stop, which is what the user checks on the way out.
     var boardingLine: String {
         guard case .ride(let route, _, let board, _, _, _) = firstRide.kind else { return "" }
-        return "\(route.shortName) \(boardTime.formatted(date: .omitted, time: .shortened)) from \(board.name)"
+        return "\(route.shortName) \(firstRide.departure.sentenceClock) from \(board.name)"
     }
 
-    /// The first bus's time as a departure board shows it: the timetable time when it is notably late (the delay
-    /// follows it), otherwise the expected time, so a small delay never reads as added twice.
-    var boardTime: Date {
-        isNotablyLate ? firstRide.departure.addingTimeInterval(-TimeInterval(realtimeDelay ?? 0)) : firstRide.departure
+    /// The first bus's timetable time, only when it is notably late. Everything else shows the expected time, which
+    /// is what the leave time is built on, so walk plus leave time always reaches the stop before the bus.
+    var timetableBoardTime: Date? {
+        isNotablyLate ? firstRide.departure.addingTimeInterval(-TimeInterval(realtimeDelay ?? 0)) : nil
     }
 
     /// "home 5:23 pm, 1 transfer".
     var arrivalLine: String {
-        "home \(arriveAt.formatted(date: .omitted, time: .shortened))" + (transfers > 0 ? ", \(transfers) transfer" : "")
+        "home \(arriveAt.sentenceClock)" + (transfers > 0 ? ", \(transfers) transfer" : "")
     }
 
     /// "4 min late" when the first bus is three minutes or more behind; smaller shifts are already in the times shown.

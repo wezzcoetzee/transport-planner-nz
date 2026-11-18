@@ -31,6 +31,13 @@ private struct CommuteSettings: View {
     @Bindable var model: AppModel
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TodayLine(model: model).padding(.horizontal, 30).padding(.top, 20) // the section titles' inset and first-heading height
+            form
+        }
+    }
+
+    private var form: some View {
         Form {
             Section("Places") {
                 PlaceSearchField(title: "Office", place: $model.settings.office, autofocus: true)
@@ -81,17 +88,37 @@ private struct CommuteSettings: View {
     /// "Earliest  16:40  20 min before": the clock time is what the user checks; the offset is what the stepper moves.
     private func offsetLabel(_ title: String, minutes: Int) -> some View {
         ValueLabel(title: title,
-                   value: leaveTime.wrappedValue.addingTimeInterval(TimeInterval(minutes * 60)).formatted(date: .omitted, time: .shortened),
+                   value: leaveTime.wrappedValue.addingTimeInterval(TimeInterval(minutes * 60)).sentenceClock,
                    detail: minutes == 0 ? "the ideal time" : "\(abs(minutes)) min \(minutes < 0 ? "before" : "after")")
     }
 
     private var leaveTime: Binding<Date> {
         Binding(
-            get: { Calendar.current.startOfDay(for: .now).addingTimeInterval(TimeInterval(model.settings.preferredLeaveMinutes * 60)) },
+            get: { model.settings.preferredLeave(on: .now, in: .current) },
             set: { d in
                 let c = Calendar.current.dateComponents([.hour, .minute], from: d)
                 model.settings.preferredLeaveMinutes = (c.hour ?? 17) * 60 + (c.minute ?? 0)
             })
+    }
+}
+
+/// What the popover will say, once both places are set, so setup ends knowing whether it worked: the plan, or the
+/// status that stands in for one, in orange when something in Settings needs fixing.
+private struct TodayLine: View {
+    let model: AppModel
+
+    var body: some View {
+        if model.settings.isConfigured {
+            Group {
+                if let r = model.recommended {
+                    let stop = r.firstBoardStop.map { " from \($0.name)" } ?? ""
+                    Text("Today: \(Text("leave \(r.leaveAt.sentenceClock)").fontWeight(.semibold).foregroundStyle(.primary)), \(r.summary)\(stop)")
+                } else if !model.headline.isEmpty {
+                    Text(model.headline).foregroundStyle(model.missingStops || model.hasError ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                }
+            }
+            .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+        }
     }
 }
 
@@ -112,6 +139,27 @@ private struct ValueLabel: View {
     }
 }
 
+/// A day or reminder chip whose state reads without the system fill, which macOS drops when Settings is not the front
+/// window: on gains a check and full white, off stays dimmed. VoiceOver still hears a toggle and its value.
+private struct CheckToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button { configuration.isOn.toggle() } label: {
+            HStack(spacing: 3) {
+                if configuration.isOn { Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)) }
+                configuration.label
+            }
+            .font(.system(size: NSFont.smallSystemFontSize))
+            .foregroundStyle(configuration.isOn ? AnyShapeStyle(.primary) : AnyShapeStyle(.white.opacity(0.45)))
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(Color(white: 0.12), in: .rect(cornerRadius: 5))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isToggle)
+        .accessibilityValue(configuration.isOn ? "On" : "Off")
+    }
+}
+
 private struct WeekdayPicker: View {
     @Binding var selection: Set<Int>
     /// Foundation weekday numbers in Monday-first order; names come from the calendar so they follow the locale.
@@ -123,8 +171,7 @@ private struct WeekdayPicker: View {
             Spacer()
             ForEach(days, id: \.self) { day in
                 Toggle(Calendar.current.shortWeekdaySymbols[day - 1], isOn: Binding(get: { selection.contains(day) }, set: { on in if on { selection.insert(day) } else { selection.remove(day) } }))
-                    .toggleStyle(.button)
-                    .controlSize(.small)
+                    .toggleStyle(CheckToggleStyle())
                     .accessibilityHint(Calendar.current.weekdaySymbols[day - 1])
             }
         }
@@ -170,7 +217,7 @@ struct NotificationHint: View {
     private static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(Bundle.main.bundleIdentifier ?? "")")!
 }
 
-/// Reminders only fire at the office; this speaks up only when location changes that.
+/// Reminders only come at the office; this speaks up only when location stops that from working.
 private struct LocationHint: View {
     let model: AppModel
 
@@ -189,10 +236,9 @@ private struct LocationHint: View {
 
     private var text: String? {
         switch model.presence {
-        case .atOffice: nil
-        case .away: "Away from the office. Reminders paused"
-        case .unknown where model.locationDenied: "Location is off. Reminders fire anywhere"
-        case .unknown where model.location != nil: "Location too vague to tell. Reminders fire anywhere"
+        case .atOffice, .away: nil // away is the popover's headline, and nothing here would change it
+        case .unknown where model.locationDenied: "Location is off. Reminders show wherever you are"
+        case .unknown where model.location != nil: "Location too vague to tell. Reminders show wherever you are"
         case .unknown: nil // still looking; reminders behave as if at the office meanwhile
         }
     }
@@ -213,8 +259,7 @@ private struct LeadPicker: View {
                 Toggle(m == 0 ? "Now" : "\(m) min", isOn: Binding(
                     get: { leads.contains(m) },
                     set: { on in leads = on ? (leads + [m]).sorted(by: >) : leads.filter { $0 != m } }))
-                .toggleStyle(.button)
-                .controlSize(.small)
+                .toggleStyle(CheckToggleStyle())
                 .accessibilityHint(m == 0 ? "At the leave time" : "\(m) minutes before the leave time")
             }
         }
@@ -233,7 +278,7 @@ private struct RouteSettings: View {
             Section("Getting there") {
                 Picker("Transfers", selection: $model.settings.maxTransfers) { Text("Direct only").tag(0); Text("Up to one").tag(1) }
                 Stepper(value: bufferMinutes, in: 0...10) {
-                    ValueLabel(title: "At the stop", value: "\(bufferMinutes.wrappedValue) min", detail: "before departure")
+                    ValueLabel(title: "Be at the stop", value: "\(bufferMinutes.wrappedValue) min", detail: "before the bus")
                 }
                 Stepper(value: $model.settings.stopSearchRadiusMeters, in: 200...1500, step: 100) {
                     ValueLabel(title: "Stops within", value: "\(Int(model.settings.stopSearchRadiusMeters)) m")
@@ -254,8 +299,11 @@ private struct RouteSettings: View {
                     }
                 }
             }
-            stopList("Near the office", place: model.settings.office, missing: "Set Office on the Commute tab", officeStops)
-            stopList("Near home", place: model.settings.home, missing: "Set Home on the Commute tab", homeStops)
+            // Without a timetable there are no stops to list; the Timetable row above is the one message.
+            if model.hasTimetable {
+                stopList("Near the office", place: model.settings.office, missing: "Set Office on the Commute tab", officeStops)
+                stopList("Near home", place: model.settings.home, missing: "Set Home on the Commute tab", homeStops)
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -297,8 +345,6 @@ private struct RouteSettings: View {
     @ViewBuilder private func stopRows(place: Place?, missing: String, loaded: [(stop: Stop, distance: Double)]?, _ stops: [(stop: Stop, distance: Double)]) -> some View {
             if place == nil {
                 Text(missing).foregroundStyle(.secondary)
-            } else if !model.hasTimetable {
-                Text("Stops appear once the timetable is in").foregroundStyle(.secondary)
             } else if loaded != nil, stops.isEmpty {
                 Text("No stops within \(Int(model.settings.stopSearchRadiusMeters)) m").monospacedDigit().foregroundStyle(.secondary)
             }
@@ -335,22 +381,23 @@ private struct DataSettings: View {
                     }
                 }
                 .help(model.feedVersion.map { "Timetable version \($0)" } ?? "")
-                Text("Free public timetable, downloaded again when AT publishes a new one" + (model.hasTimetable ? "" : ". Apple Maps stands in while it downloads"))
-                    .font(.caption).foregroundStyle(.secondary)
+                if !model.hasTimetable {
+                    Text("Apple Maps stands in while it downloads").font(.caption).foregroundStyle(.secondary)
+                }
             }
             Section("Live delays") {
                 SecureField("AT key", text: $model.settings.atSubscriptionKey, prompt: Text("Paste primary key"))
                 // The key's status sits right under it; sign-up help only while there is no working key.
                 switch model.realtimeStatus {
-                case .live(let at): Text("Working, checked \(at.formatted(date: .omitted, time: .shortened))").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                case .live(let at): Text("Working, checked \(at.sentenceClock)").font(.caption).foregroundStyle(.secondary).monospacedDigit()
                 case .rejected, .unreachable: Text(model.realtimeStatus.problem ?? "").font(.caption).foregroundStyle(.orange)
                 case .off:
                     if !model.settings.atSubscriptionKey.isEmpty {
-                        Text("Saved. Checked at the next refresh").font(.caption).foregroundStyle(.secondary)
+                        Text("Saved. Checking now").font(.caption).foregroundStyle(.secondary) // a settings change replans within seconds
                     }
                 }
                 if model.settings.atSubscriptionKey.isEmpty || model.realtimeStatus == .rejected {
-                    Text("Sign up free at [__dev-portal.at.govt.nz__](https://dev-portal.at.govt.nz), subscribe to the Realtime API and paste the primary key. Without it the app uses the timetable only")
+                    Text("Free from [__dev-portal.at.govt.nz__](https://dev-portal.at.govt.nz): subscribe to the Realtime API and paste the primary key. Without a working key, times come from the timetable")
                         .font(.caption).foregroundStyle(.secondary).tint(.white)
                 }
             }

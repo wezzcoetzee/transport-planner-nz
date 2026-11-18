@@ -9,7 +9,12 @@ import UserNotifications
 @Observable @MainActor
 final class AppModel {
     nonisolated static let dbPath: String = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("NZTransportPlanner", isDirectory: true)
+        #if DEBUG
+        let folder = "NZTransportPlanner Debug" // a Debug build never shares a timetable or log with an installed copy
+        #else
+        let folder = "NZTransportPlanner"
+        #endif
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent(folder, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("gtfs.sqlite").path
     }()
@@ -59,9 +64,12 @@ final class AppModel {
     private(set) var realtimeStatus: RealtimeStatus = .off
     /// Today's commute is settled: dismissed with "Not today" or confirmed with "Going".
     private(set) var dayDone: DayDone?
+    /// A journey passed on with "Next", and when it leaves: once it has gone, Previous has nothing to restore.
+    struct Skip: Equatable { let id: String; var leaveAt: Date }
     /// Journeys passed on with "Next" today. GTFS trip IDs repeat every day, so these reset at midnight.
-    /// In the order they were skipped, so Undo steps back one at a time.
-    private(set) var skippedJourneyIDs: [String] = []
+    /// In the order they were skipped, so Previous steps back one at a time.
+    private(set) var skipped: [Skip] = []
+    private var skippedIDs: Set<String> { Set(skipped.map(\.id)) }
     private var skippedOn = ""
     /// Latest fix from Location Services; nil until one arrives or while permission is denied.
     private(set) var location: CLLocation?
@@ -74,8 +82,8 @@ final class AppModel {
         case off, live(Date), rejected, unreachable
         var problem: String? {
             switch self {
-            case .rejected: "AT key rejected"
-            case .unreachable: "Live delays unreachable"
+            case .rejected: "AT key rejected. Check it was pasted in full"
+            case .unreachable: "Could not reach AT for live delays. Using timetable times"
             case .off, .live: nil
             }
         }
@@ -117,6 +125,10 @@ final class AppModel {
     /// Straight-line distance to street-network walking distance. Settings shows stops with the same factor.
     nonisolated static let walkDetour = 1.3
     private var lastFeedCheck: Date?
+    /// A timetable is on disk but would not open, so it reads as needing a new download rather than a first one.
+    private var storeUnreadable = false
+    /// The latest plan threw with a timetable open; reset at the start of every plan.
+    private var planFailed = false
     private var stopsResolvedFor: (Place?, Place?, Double, Double, Set<String>)?
     #if DEBUG
     /// Stand-in stop lists for `Screenshots`, which never opens a timetable.
@@ -153,10 +165,11 @@ final class AppModel {
             importedAt = await s.importedAt
             stopsResolvedFor = nil
             hasError = false
+            storeUnreadable = false
         } catch {
             AppLog.error("open store failed: \(error)")
             hasError = true
-            statusMessage = "Timetable needs re-downloading"
+            storeUnreadable = true
         }
     }
 
@@ -257,16 +270,15 @@ final class AppModel {
             menuAccessibilityLabel = "Away from the office" // no countdown when there is no office to leave
         } else if let f = fallback {
             let mins = Int((f.departure.timeIntervalSinceNow / 60).rounded(.down))
-            menuTitle = mins <= 0 ? "Go" : "~" + (mins < Self.clockThresholdMinutes ? "\(mins)m" : Self.menuClock(f.departure))
+            menuTitle = mins <= 0 ? "Go" : "~" + (mins < Self.clockThresholdMinutes ? "\(mins)m" : f.departure.boardClock)
             setUrgency(minutes: mins) // an estimate's "Go" means the same as a plan's
             menuAccessibilityLabel = Self.spokenEstimate(f.departure, now: .now)
         } else if let r = recommended {
             if case .ride(let route, _, _, _, _, _) = r.firstRide.kind { menuSymbol = route.symbolName }
             let mins = r.minutesUntilLeave(from: .now)
-            menuTitle = mins <= 0 ? "Go" : mins < Self.clockThresholdMinutes ? "\(mins)m" : Self.menuClock(r.leaveAt)
+            menuTitle = mins <= 0 ? "Go" : mins < Self.clockThresholdMinutes ? "\(mins)m" : r.leaveAt.boardClock
             setUrgency(minutes: mins)
-            menuAccessibilityLabel = mins <= 0 ? "Leave now"
-                : mins < Self.clockThresholdMinutes ? "Leave in \(mins) minutes" : "Leave at \(Self.menuClock(r.leaveAt))"
+            menuAccessibilityLabel = Self.spokenLeave(r.leaveAt, now: .now)
         } else if !settings.isConfigured {
             menuAccessibilityLabel = "NZ Transport Planner. Set up your commute"
         } else if awaitingTimetable, importActivity != nil {
@@ -298,14 +310,14 @@ final class AppModel {
     var alternatives: [Journey] {
         guard let r = recommended else { return [] }
         return journeys.filter {
-            $0.id != r.id && !$0.cancelled && !skippedJourneyIDs.contains($0.id) && $0.leaveAt > Date().addingTimeInterval(-60)
+            $0.id != r.id && !$0.cancelled && !skippedIDs.contains($0.id) && $0.leaveAt >= Date().addingTimeInterval(-30)
         }
     }
 
     /// The download action named for what it will do in the current state.
     var downloadActionTitle: String {
         if case .failed = importPhase { return "Retry download" }
-        return hasTimetable ? "Download again" : "Download"
+        return hasTimetable || storeUnreadable ? "Download again" : "Download"
     }
 
     /// A refresh failed and the timetable in use is over a week old, so plans may be missing services.
@@ -319,9 +331,16 @@ final class AppModel {
 
     /// VoiceOver for an Apple Maps estimate, in the menu bar and popover alike: always "about".
     static func spokenEstimate(_ departure: Date, now: Date) -> String {
-        let mins = Int((departure.timeIntervalSince(now) / 60).rounded(.down))
-        return "Apple Maps estimate. " + (mins <= 0 ? "Leave now"
-            : mins < clockThresholdMinutes ? "Leave in about \(mins) minutes" : "Leave at about \(menuClock(departure))")
+        "Apple Maps estimate. " + spokenLeave(departure, now: now, approximate: true)
+    }
+
+    /// A countdown for VoiceOver: "Leave in 1 minute", "Leave at about 5:05 pm". Spoken times keep am/pm.
+    static func spokenLeave(_ date: Date, now: Date, approximate: Bool = false) -> String {
+        let mins = Int((date.timeIntervalSince(now) / 60).rounded(.down))
+        let about = approximate ? "about " : ""
+        if mins <= 0 { return "Leave now" }
+        if mins < clockThresholdMinutes { return "Leave in \(about)\(mins) \(mins == 1 ? "minute" : "minutes")" }
+        return "Leave at \(about)\(date.sentenceClock)"
     }
 
     /// The popover headline when there is no plan to count down to.
@@ -330,7 +349,7 @@ final class AppModel {
         guard awaitingTimetable else { return statusMessage }
         return switch importPhase {
         case .failed: "Timetable download failed"
-        case .idle, .done: "Timetable not downloaded yet"
+        case .idle, .done: storeUnreadable ? "Timetable needs re-downloading" : "Timetable not downloaded yet"
         case .downloading: "Downloading timetable"
         case .extracting, .importing, .indexing: "Preparing timetable"
         }
@@ -350,12 +369,8 @@ final class AppModel {
     var importProgress: String? { awaitingTimetable && importActivity != headline ? importActivity : nil }
 
     /// A download button belongs only beside the status it fixes, not under "On your way" after an old failure.
-    var canRetryDownload: Bool { awaitingTimetable && importActivity == nil } // failed, or finished but unusable
-
-    /// "5:05" without am/pm; the menu bar has no room for it and the hour is never ambiguous within a workday.
-    private static func menuClock(_ date: Date) -> String {
-        date.formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute())
-    }
+    /// Failed, finished but unusable, or open but failing to plan: a fresh copy is the one remedy for each.
+    var canRetryDownload: Bool { (awaitingTimetable || planFailed) && importActivity == nil }
 
     /// Poll faster as the leave time approaches so realtime delays are caught.
     private var refreshInterval: Int {
@@ -411,11 +426,17 @@ final class AppModel {
         // A notification's bus that is no longer planned is not swapped for a different one the user never saw.
         finishDay(going: true, journey: journeyID.map { id in journeys.first { $0.id == id } } ?? recommended)
     }
-    func resumeToday() { dayDone = nil; Task { await refresh() } }
+    /// Undo takes the place of the button just pressed, so a double-click on Going or Not today would land its
+    /// second click here. Within a second of answering, that is the click, not a change of mind.
+    func resumeToday() {
+        guard let done = doneToday, Date().timeIntervalSince(done.settledAt) > 1 else { return }
+        dayDone = nil
+        Task { await refresh() }
+    }
 
     private func finishDay(going: Bool, journey: Journey?) {
         dayDone = DayDone(day: todayKey, going: going, journey: journey)
-        skippedJourneyIDs = [] // nothing left to undo once the day is settled
+        skipped = [] // nothing left to undo once the day is settled
         clearPlan(going ? "On your way" : "Not today")
         fallback = nil
         LeaveNotifier.clearDelivered()
@@ -424,7 +445,11 @@ final class AppModel {
 
     func skipRecommended() {
         rollOverDay()
-        if let r = recommended { skippedJourneyIDs.append(r.id) }
+        if let r = recommended, !skippedIDs.contains(r.id) { skipped.append(Skip(id: r.id, leaveAt: r.leaveAt)) }
+        // Move on from the plan in hand; the refresh below can wait seconds on realtime, and the skipped bus must
+        // not stay on the board (with Going live) meanwhile.
+        if let next = bestJourney() { recommended = next } else { clearPlan("No later option today") }
+        updateMenuTitle()
         notifier.skip(leads: settings.reminderLeadMinutes)
         leavePanel.close()
         LeaveNotifier.clearDelivered()
@@ -432,7 +457,35 @@ final class AppModel {
     }
 
     /// Brings back the most recently skipped option only.
-    func undoSkip() { _ = skippedJourneyIDs.popLast(); Task { await refresh() } }
+    func undoSkip() {
+        _ = skipped.popLast()
+        if let best = bestJourney() { recommended = best }
+        updateMenuTitle()
+        Task { await refresh() }
+    }
+
+    /// The chooser's pick from the plan in hand, leaving out skipped journeys (and `also`, when given).
+    private func bestJourney(now: Date = .now, also excluded: String? = nil) -> Journey? {
+        let prefs = JourneyChooser.Preferences(preferredLeave: settings.preferredLeave(on: now, in: GTFSStore.feedTimeZone), now: now)
+        let passedOver = skippedIDs.union([excluded].compactMap { $0 })
+        return JourneyChooser.best(from: journeys.filter { !passedOver.contains($0.id) }, prefs)
+    }
+
+    /// Where Next will go. The chooser re-scores what is left, so this is not always the next row down.
+    var nextPick: Journey? { recommended.flatMap { bestJourney(also: $0.id) } }
+
+    /// Next's help in the popover and the leave panel alike: where it goes, or why it cannot.
+    var nextHelp: String { nextPick.map { "Skip to the \($0.leaveAt.boardClock) \($0.summary) (→)" } ?? "No later option today" }
+
+    /// Why the recommended bus beats the soonest one that could be caught instead, for hover help and VoiceOver:
+    /// "Picked over the 4:45: home 4 min sooner, no transfer".
+    var recommendationReason: String? {
+        guard let r = recommended else { return nil }
+        guard let e = alternatives.filter({ $0.leaveAt < r.leaveAt }).min(by: { $0.leaveAt < $1.leaveAt }) else {
+            return "The soonest bus you can make"
+        }
+        return "Picked over the \(e.leaveAt.boardClock): " + JourneyChooser.reason(for: r, over: e)
+    }
 
     /// Overlapping calls (timer, settings, wake, a click) collapse into one more pass after the running one.
     func refresh() async {
@@ -450,7 +503,7 @@ final class AppModel {
     private func rollOverDay() {
         let today = todayKey
         if let done = dayDone, done.day != today { dayDone = nil }
-        if skippedOn != today { skippedJourneyIDs = []; skippedOn = today }
+        if skippedOn != today { skipped = []; skippedOn = today }
     }
 
     /// Drops the current plan and puts `message` in the headline.
@@ -462,6 +515,7 @@ final class AppModel {
 
     private func refreshPlan() async {
         awaitingTimetable = false
+        planFailed = false
         missingStops = false
         nothingToday = false
         notifier.clearIfStale(now: .now) // a reminder for a bus that left must not outlive the plan that made it
@@ -510,15 +564,19 @@ final class AppModel {
             planned = await applyRealtime(to: planned)
             guard doneToday == nil else { return } // "Going" or "Not today" landed while planning
             journeys = planned
-            let prefs = JourneyChooser.Preferences(preferredLeave: settings.preferredLeave(on: now, in: GTFSStore.feedTimeZone), now: now)
-            recommended = JourneyChooser.best(from: planned.filter { !skippedJourneyIDs.contains($0.id) }, prefs)
+            // A skipped bus that has gone can never come back, so Previous only offers what it would restore. Its
+            // leave time follows realtime while it is planned; one realtime drops for a while keeps the last known time.
+            skipped = skipped.compactMap { s in
+                let leaveAt = planned.first { $0.id == s.id }?.leaveAt ?? s.leaveAt
+                return leaveAt < now.addingTimeInterval(-30) ? nil : Skip(id: s.id, leaveAt: leaveAt)
+            }
+            recommended = bestJourney(now: now)
             lastRefresh = now
             hasError = false
             AppLog.note("planned in \(Date().timeIntervalSince(started))s: \(planned.count) journeys, recommended \(self.recommended?.summary ?? "none") leaving \(self.recommended?.leaveAt.description ?? "-")")
             // The prompt is about one bus; once the plan moves on it is stale.
             if leavePanel.journeyID != recommended?.id { leavePanel.close() }
             if let r = recommended {
-                statusMessage = "Leave \(r.leaveAt.formatted(date: .omitted, time: .shortened))"
                 fallback = nil
                 // Away from the office the plan stays visible but quiet, and the schedule does not advance.
                 guard presence != .away,
@@ -534,14 +592,17 @@ final class AppModel {
             } else {
                 // The timetable answered: there is nothing to catch. An estimate here would invent a bus (often
                 // tomorrow's, or one just skipped), so only the status shows; Maps stays in the footer.
-                let t = { (d: Date) in d.formatted(date: .omitted, time: .shortened) }
+                let t = { (d: Date) in d.sentenceClock }
+                let catchable = planned.filter { !skippedIDs.contains($0.id) && $0.leaveAt >= now.addingTimeInterval(-30) }
                 clearPlan(planned.isEmpty ? "No services between \(t(window.lowerBound)) and \(t(window.upperBound))"
-                    : planned.allSatisfy { skippedJourneyIDs.contains($0.id) } ? "No later option today" : "No more services today")
+                    : !catchable.isEmpty && catchable.allSatisfy(\.cancelled) ? "Remaining services cancelled"
+                    : planned.allSatisfy { skippedIDs.contains($0.id) } ? "No later option today" : "No more services today")
                 fallback = nil; nothingToday = true
             }
         } catch {
             AppLog.error("planning failed: \(error)")
             hasError = true
+            planFailed = true
             await useFallback(office: office, home: home, at: fallbackAt, reason: "Could not plan a route")
         }
     }
@@ -636,7 +697,7 @@ extension AppModel {
         self.feedVersion = feedVersion
         importedAt = feedVersion == nil ? nil : .now.addingTimeInterval(-2 * 24 * 3600)
         demoStops = stops
-        skippedJourneyIDs = skipped
+        self.skipped = skipped.map { Skip(id: $0, leaveAt: .distantFuture) }
         updateMenuTitle()
     }
 }

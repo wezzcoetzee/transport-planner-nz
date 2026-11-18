@@ -13,6 +13,13 @@ struct NZTransportPlannerApp: App {
             MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.window)
+        .commands {
+            // Shortcuts on items inside a closed menu never fire, so ⌘R lives in the app menu too. Settings… (⌘,)
+            // and Quit (⌘Q) are already there by default.
+            CommandGroup(after: .appSettings) {
+                Button("Refresh") { Task { await AppModel.shared.refresh() } }.keyboardShortcut("r")
+            }
+        }
 
         Settings {
             SettingsView(model: model)

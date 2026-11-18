@@ -49,7 +49,7 @@ struct PlaceSearchField: View {
                             .onSubmit { if let first = results.first { Task { await resolve(first) } } }
                             .onExitCommand { cancel() }
                         if place != nil {
-                            Button("Cancel") { cancel() }.buttonStyle(.borderless).accessibilityLabel("Keep the saved \(title.lowercased())")
+                            Button("Cancel") { cancel() }.buttonStyle(.borderless).accessibilityHint("Keeps the saved \(title.lowercased())")
                         }
                     }
                     if resolveFailed {

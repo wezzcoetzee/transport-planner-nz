@@ -125,6 +125,33 @@ struct PlannerTests {
         #expect(Presence(location: fix(0.0003, 0.0004, accuracy: 65), office: nil) == .unknown)
     }
 
+    @Test func reasonNamesWhatMadeTheLaterBusWin() {
+        let route = Route(id: "R", shortName: "70", longName: "", type: 3, color: nil)
+        let a = Stop(id: "A", code: "1", name: "A", latitude: 0, longitude: 0, parentStation: nil)
+        let t0 = Date(timeIntervalSince1970: 1_000_000)
+        /// Leaves at `leave` minutes, home at `home` minutes, with `rides` buses (rides - 1 transfers).
+        func journey(leave: Double, home: Double, rides: Int) -> Journey {
+            let step = (home - leave) / Double(rides)
+            return Journey(legs: (0..<rides).map { i in
+                let start = t0 + (leave + step * Double(i)) * 60
+                return Leg(kind: .ride(route: route, trip: TripInfo(id: "T\(leave)-\(i)", routeID: "R", headsign: "x"), board: a, alight: a,
+                                       boardSequence: 1, stops: 2), departure: start, arrival: start + step * 60)
+            })
+        }
+        let pick = journey(leave: 10, home: 30, rides: 1)
+        #expect(JourneyChooser.reason(for: pick, over: journey(leave: 5, home: 34, rides: 2)) == "home 4 min sooner, no transfer")
+        #expect(JourneyChooser.reason(for: pick, over: journey(leave: 5, home: 30, rides: 1)) == "closer to your ideal time")
+    }
+
+    @Test(arguments: [(2026, 9, 27), (2026, 4, 5)]) // daylight saving starts, then ends
+    func serviceTimesKeepTheClockOnDaylightSavingDays(year: Int, month: Int, day: Int) {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = Self.tz
+        let noon = cal.date(from: DateComponents(year: year, month: month, day: day, hour: 12))!
+        let fivePM = cal.date(from: DateComponents(year: year, month: month, day: day, hour: 17))!
+        #expect(ServiceDay(containing: noon, timeZone: Self.tz).instant(atServiceSeconds: 17 * 3600) == fivePM)
+        #expect(AppSettings().preferredLeave(on: noon, in: Self.tz) == fivePM)
+    }
+
     @Test func realtimeDelayShiftsLeaveTimeAndCancelsTrips() throws {
         let json = """
         {"status":"OK","response":{"header":{},"entity":[
@@ -152,6 +179,10 @@ struct PlannerTests {
         #expect(adjusted[0].leaveAt == t0 + 180)
         #expect(adjusted[0].arriveAt == t0 + 1260 + 180)
         #expect(adjusted[0].realtimeDelay == 180)
+        // A notably late bus reads at its expected time, so walk plus leave time still reaches the stop first.
+        #expect(adjusted[0].boardingLine == "70 \((t0 + 300).sentenceClock) from A")
+        #expect(adjusted[0].delayNote == "3 min late")
+        #expect(adjusted[0].timetableBoardTime == t0 + 120)
         #expect(adjusted[1].cancelled)
     }
 }

@@ -60,3 +60,12 @@ struct Journey: Hashable, Sendable, Identifiable {
         return legs[next].arrival <= legs[next + 1].departure
     }
 }
+
+extension Date {
+    /// A departure board's clock: "4:52" with no am/pm, which is never ambiguous within one commute. Rows and the
+    /// menu bar use it.
+    var boardClock: String { formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute()) }
+
+    /// A time inside a sentence, "5:05 pm": the house voice keeps am/pm lowercase whatever the locale's default.
+    var sentenceClock: String { formatted(date: .omitted, time: .shortened).lowercased() }
+}
