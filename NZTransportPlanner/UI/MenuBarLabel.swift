@@ -26,7 +26,7 @@ struct MenuBarLabel: View {
         .font(.system(size: NSFont.menuBarFont(ofSize: 0).pointSize)) // the status bar's own size
         .foregroundStyle(tint ?? .black)
         let renderer = ImageRenderer(content: content)
-        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        let scale = NSScreen.screens.map(\.backingScaleFactor).max() ?? 2 // the status bar may sit on any display
         renderer.scale = scale
         guard let cg = renderer.cgImage else { return NSImage() }
         let image = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / scale, height: CGFloat(cg.height) / scale))

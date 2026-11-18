@@ -32,7 +32,9 @@ struct AppSettings: Codable, Hashable, Sendable {
 
     func preferredLeave(on date: Date, in tz: TimeZone) -> Date {
         var cal = Calendar(identifier: .gregorian); cal.timeZone = tz
-        return cal.startOfDay(for: date).addingTimeInterval(TimeInterval(preferredLeaveMinutes * 60))
+        // A clock time, not minutes after midnight: those are an hour out on daylight saving days.
+        return cal.date(bySettingHour: preferredLeaveMinutes / 60, minute: preferredLeaveMinutes % 60, second: 0, of: date)
+            ?? cal.startOfDay(for: date).addingTimeInterval(TimeInterval(preferredLeaveMinutes * 60))
     }
 
     func leaveWindow(on date: Date, in tz: TimeZone) -> ClosedRange<Date> {
@@ -48,7 +50,12 @@ enum SettingsStore {
     private static let legacyDomain = "org.transportplannernz.TransportPlannerNZ"
 
     static func load() -> AppSettings {
-        guard let data = UserDefaults.standard.data(forKey: key) ?? UserDefaults(suiteName: legacyDomain)?.data(forKey: key),
+        #if DEBUG
+        let legacy: Data? = nil // Debug has its own bundle ID; the legacy domain holds a real user's commute
+        #else
+        let legacy = UserDefaults(suiteName: legacyDomain)?.data(forKey: key)
+        #endif
+        guard let data = UserDefaults.standard.data(forKey: key) ?? legacy,
               let s = try? JSONDecoder().decode(AppSettings.self, from: data) else { return AppSettings() }
         return s
     }

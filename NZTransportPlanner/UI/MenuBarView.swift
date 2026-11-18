@@ -24,7 +24,7 @@ struct MenuBarView: View {
                 }
             }
             if let r = model.recommended {
-                RecommendedRow(journey: r)
+                RecommendedRow(journey: r, reason: model.recommendationReason)
                 alternatives(excluding: r)
             } else {
                 statusAction
@@ -60,7 +60,9 @@ struct MenuBarView: View {
         if isAway {
             Text("Away from the office")
         } else if let r = model.recommended {
-            TimelineView(r.countdownSchedule) { ctx in Text(Self.leaveText(r.leaveAt, now: ctx.date)) }
+            TimelineView(r.countdownSchedule) { ctx in
+                Text(Self.leaveText(r.leaveAt, now: ctx.date)).accessibilityLabel(AppModel.spokenLeave(r.leaveAt, now: ctx.date))
+            }
         } else if let f = model.fallback {
             TimelineView(Journey.countdownSchedule(to: f.departure)) { ctx in
                 Text(Self.leaveText(f.departure, now: ctx.date, approximate: true))
@@ -76,14 +78,14 @@ struct MenuBarView: View {
         let about = approximate ? "~" : ""
         if mins <= 0 { return "Leave now" }
         if mins < AppModel.clockThresholdMinutes { return "Leave in \(about)\(mins) min" }
-        return "Leave at \(about)\(leaveAt.formatted(date: .omitted, time: .shortened))"
+        return "Leave at \(about)\(leaveAt.sentenceClock)"
     }
 
     @ViewBuilder private var realtimeBadge: some View {
         // Without an AT key there is no badge: the absence of "Live" says it.
         switch model.realtimeStatus {
         case .live(let at): Label("Live", systemImage: "dot.radiowaves.left.and.right").foregroundStyle(.green)
-            .help("Live delays at \(at.formatted(date: .omitted, time: .shortened))")
+            .help("Live delays at \(at.sentenceClock)")
         case .rejected:
             // Only a rejected key has a fix in Settings; a network failure has nothing to open.
             Button { showSettings(.data) } label: { Label("Live unavailable", systemImage: "exclamationmark.triangle") }
@@ -91,7 +93,7 @@ struct MenuBarView: View {
                 .help("AT key rejected. Open the Data tab").accessibilityHint("AT key rejected. Opens Settings")
         case .unreachable:
             Label("Live unavailable", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                .help("Live delays unreachable. Using the timetable")
+                .help("Could not reach AT for live delays. Using timetable times")
         case .off: EmptyView()
         }
     }
@@ -104,7 +106,7 @@ struct MenuBarView: View {
             } else if model.canRetryDownload {
                 Button(model.downloadActionTitle) { Task { await model.refreshFeedIfStale(force: true) } }.disabled(model.isImporting)
             } else if model.missingStops {
-                Button("Open Route") { showSettings(.route) }
+                Button("Open Route settings") { showSettings(.route) }
             }
         }
         .remedyButtonStyle()
@@ -131,7 +133,7 @@ struct MenuBarView: View {
             VStack(alignment: .leading, spacing: 2) {
                 // Away, the estimate describes a departure from somewhere the user is not.
                 if let f = model.fallback, !isAway {
-                    Text("Apple Maps estimate, home \(f.arrival.formatted(date: .omitted, time: .shortened))")
+                    Text("Apple Maps estimate, home \(f.arrival.sentenceClock)")
                 }
                 if let reason { Text(reason).foregroundStyle(.secondary) }
             }
@@ -140,45 +142,63 @@ struct MenuBarView: View {
         }
     }
 
-    /// Actions follow the state: only what would do something right now is offered.
+    /// Actions follow the state: only what would do something right now is offered. Each answer has a key, and a key
+    /// only works while its word is shown, so Return cannot end the day before Going is offered.
     private var footer: some View {
         HStack(spacing: 12) {
             if let r = model.recommended {
                 // Going means "leaving now"; offered from the orange threshold so it cannot end the day by accident.
                 if r.minutesUntilLeave(from: .now) <= AppModel.soonMinutes {
                     Button("Going") { model.going() }.fontWeight(.semibold)
+                        .keyboardShortcut(.defaultAction).help("Leaving now (↩)")
                 }
                 Button("Next") { model.skipRecommended() }.disabled(model.alternatives.isEmpty)
-                    .help(model.alternatives.isEmpty ? "No later option today" : "Skip to the next option")
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                    .help(model.nextHelp)
             }
-            if !model.skippedJourneyIDs.isEmpty, model.doneToday == nil {
-                Button("Previous") { model.undoSkip() }.help("Bring back the option passed over with Next")
+            if !model.skipped.isEmpty, model.doneToday == nil {
+                Button("Previous") { model.undoSkip() }.keyboardShortcut(.leftArrow, modifiers: [])
+                    .help("Bring back the option passed over with Next (←)")
             }
             if model.doneToday != nil {
-                Button("Undo") { model.resumeToday() }.help("Take back Going or Not today and plan again")
+                Button("Undo") { model.resumeToday() }.keyboardShortcut("z")
+                    .help("Take back Going or Not today and plan again (⌘Z)")
                     .accessibilityHint(model.doneToday?.going == true ? "Takes back Going" : "Takes back Not today")
             } else if model.recommended != nil || model.fallback != nil {
-                Button("Not today") { model.skipToday() }
+                Button("Not today") { model.skipToday() }.keyboardShortcut(.delete).help("No reminders until tomorrow (⌘⌫)")
             }
             Spacer()
+            // Maps is about this journey, so it stays beside the answers; app-level actions go behind the gear.
             if let o = model.settings.office, let h = model.settings.home {
                 Button { AppleTransitFallback.openInMaps(from: o, to: h) } label: { Image(systemName: "map") }
-                    .accessibilityLabel("Maps").help("Open this commute in Apple Maps")
+                    .accessibilityLabel("Open in Apple Maps").help("Open this commute in Apple Maps")
             }
-            if model.settings.isConfigured {
-                Button { Task { await model.refresh() } } label: { Image(systemName: "arrow.clockwise") }
-                    .keyboardShortcut("r").disabled(model.isRefreshing)
-                    .accessibilityLabel("Refresh")
-                    .help(model.lastRefresh.map { "Refresh. Updated \($0.formatted(date: .omitted, time: .shortened))" } ?? "Refresh")
-            }
-            Button { showSettings(.commute) } label: { Image(systemName: "gearshape") }
-                .accessibilityLabel("Settings").help("Settings").keyboardShortcut(",")
-            Button { NSApplication.shared.terminate(nil) } label: { Image(systemName: "power") }
-                .accessibilityLabel("Quit NZ Transport Planner").help("Quit").keyboardShortcut("q")
+            appMenu
         }
         .buttonStyle(FooterButtonStyle())
         .lineLimit(1).fixedSize(horizontal: false, vertical: true)
         .font(.callout) // the answers are the title size, not the smallest text on the board
+    }
+
+    /// Settings, Refresh and Quit: rare actions, kept out of the answer row so a stray click cannot quit the app.
+    private var appMenu: some View {
+        Menu {
+            Button("Settings…") { showSettings(.commute) }.keyboardShortcut(",")
+            if model.settings.isConfigured {
+                // Shows ⌘R; the app command in NZTransportPlannerApp is what answers it while this menu is closed.
+                Button("Refresh") { Task { await model.refresh() } }.keyboardShortcut("r").disabled(model.isRefreshing)
+                if let at = model.lastRefresh { Text("Updated \(at.sentenceClock)") }
+            }
+            Divider()
+            Button("Quit NZ Transport Planner") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
+        } label: {
+            Image(systemName: "gearshape")
+        }
+        .menuStyle(.borderlessButton)
+        .controlSize(.small) // AppKit draws the menu at its own size; small matches the callout-sized Maps icon
+        .fixedSize()
+        .padding(.leading, -6) // AppKit insets the menu button; this keeps the footer's 12 pt gap beside Maps
+        .accessibilityLabel("Settings, refresh and quit").help("Settings, refresh and quit")
     }
 
     private func showSettings(_ tab: SettingsView.Tab) { model.settingsTab = tab; openSettings(); NSApp.activate() }
@@ -202,20 +222,23 @@ private struct FooterButtonStyle: ButtonStyle {
     }
 }
 
-/// The recommended journey in full: every leg, the bus time at the stop, and when you get home.
-extension Date {
-    /// A departure board's clock: "4:52" with no am/pm, which is never ambiguous within one commute. Sentences,
-    /// the headline, notifications and VoiceOver keep the full time.
-    var boardClock: String { formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute()) }
-}
+/// The leave-time column shared by every row, wide enough for "leave 12:56" on the recommended one.
+private let boardTimeColumn: CGFloat = 70
 
+/// The recommended journey in full: every leg, the bus time at the stop, and when you get home.
 struct RecommendedRow: View {
     let journey: Journey
+    /// Why this bus won, as hover help (VoiceOver reads it after the row); the board itself stays as evidence.
+    var reason: String? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(journey.leaveAt.boardClock).font(.callout.weight(.semibold)).monospacedDigit()
-                .frame(width: 62, alignment: .leading)
+            // Named once, like "home": the alternatives below carry only the values.
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text("leave").font(.caption).foregroundStyle(.secondary)
+                Text(journey.leaveAt.boardClock).font(.callout.weight(.semibold)).monospacedDigit()
+            }
+            .frame(width: boardTimeColumn, alignment: .leading)
             // Reads in travel order: walk, bus, where to get off, then home on that same line.
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(shownLegs) { legRow($0) }
@@ -225,6 +248,7 @@ struct RecommendedRow: View {
         .padding(.vertical, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spokenDetail)
+        .help(reason ?? "")
     }
 
     /// The full sentence plus what only this row shows: the walk to the stop and where to get off.
@@ -251,19 +275,19 @@ struct RecommendedRow: View {
             Label("\(max(1, Int((leg.duration / 60).rounded(.up)))) min walk", systemImage: "figure.walk")
                 .font(.caption).foregroundStyle(.secondary).monospacedDigit()
         case .ride(let route, let trip, let board, let alight, _, _):
+            // Realtime applies to the first bus: the expected time, with the delay beside it to say why it moved.
+            let timetable = leg.id == journey.firstRide.id ? journey.timetableBoardTime : nil
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Image(systemName: route.symbolName)
                     Text(route.shortName).fontWeight(.semibold)
-                    // Realtime applies to the first bus: its time reads like a departure board, the delay beside it.
-                    let isFirst = leg.id == journey.firstRide.id
-                    Text((isFirst ? journey.boardTime : leg.departure).boardClock)
-                        .fontWeight(.semibold).monospacedDigit()
-                    if isFirst, let d = journey.delayNote { DelayText(text: d) }
+                    Text(leg.departure.boardClock).fontWeight(.semibold).monospacedDigit()
+                    if timetable != nil, let d = journey.delayNote { DelayText(text: d) }
                 }
-                .help(trip.headsign) // the stop line below already gives the direction
+                // The stop line below already gives the direction; the timetable time is detail for the curious.
+                .help(timetable.map { "\(trip.headsign). Timetable \($0.sentenceClock)" } ?? trip.headsign)
                 HStack(alignment: .firstTextBaseline) {
-                    Text("\(board.name) → \(alight.name)").lineLimit(2)
+                    Text("\(board.name) → \(alight.name)").lineLimit(3)
                     if leg.id == journey.rides.last?.id {
                         Spacer(minLength: 8)
                         Text("home \(journey.arriveAt.boardClock)").monospacedDigit()
@@ -280,7 +304,7 @@ struct RecommendedRow: View {
 struct DelayText: View {
     let text: String
 
-    var body: some View { Text(text).monospacedDigit().foregroundStyle(.orange) }
+    var body: some View { Text(text).monospacedDigit().foregroundStyle(.orange).fixedSize() }
 }
 
 extension View {
@@ -316,7 +340,7 @@ struct AlternativeRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(journey.leaveAt.boardClock).font(.callout).monospacedDigit()
-                .frame(width: 62, alignment: .leading).opacity(dim)
+                .frame(width: boardTimeColumn, alignment: .leading).opacity(dim)
             HStack(spacing: 4) {
                 Group {
                     if showsMode, let route = journey.firstRoute { Image(systemName: route.symbolName) }
@@ -344,7 +368,7 @@ extension Journey {
     var firstRoute: Route? { if case .ride(let route, _, _, _, _, _) = firstRide.kind { route } else { nil } }
 
     /// One sentence for VoiceOver: "Leave 5:02 pm, INN 5:08 pm from Lower Albert Street, 4 min late, home 5:23 pm".
-    var spokenSummary: String { "Leave \(leaveAt.formatted(date: .omitted, time: .shortened)), \(notificationBody)" }
+    var spokenSummary: String { "Leave \(leaveAt.sentenceClock), \(notificationBody)" }
 
     /// Redraws a countdown once a minute, just after the rounded-down minute to `leaveAt` changes.
     var countdownSchedule: PeriodicTimelineSchedule { Self.countdownSchedule(to: leaveAt) }

@@ -107,8 +107,9 @@ enum Screenshots {
 
     private static func demoStops(_ place: Place) -> [(stop: Stop, distance: Double)] {
         place == office
-            ? [(stop("1", "7036", "Lower Albert Street"), 140), (stop("2", "1315", "Customs Street West"), 210),
-               (stop("5", "7058", "Britomart Train Station"), 260), (stop("6", "1325", "Queen Street"), 380)]
+            // Distances that give the same walks as the demo journeys (5 min to Lower Albert, 3 to Customs Street West).
+            ? [(stop("2", "1315", "Customs Street West"), 170), (stop("1", "7036", "Lower Albert Street"), 280),
+               (stop("5", "7058", "Britomart Train Station"), 330), (stop("6", "1325", "Queen Street"), 420)]
             : [(stop("3", "8124", "Ponsonby Road"), 120), (stop("7", "8131", "Franklin Road"), 330)]
     }
 

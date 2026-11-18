@@ -75,7 +75,7 @@ The [shared macOS release workflow](https://github.com/wezzcoetzee/.github/blob/
 
 ## Setup
 
-1. Settings opens on first launch (later, click the bus in the menu bar, then the gear). Set Office and Home by searching an address.
+1. Settings opens on first launch (later, click the bus in the menu bar, then the gear and Settings). Set Office and Home by searching an address.
 2. Allow notifications and Location Services when asked; the prompts appear once both places are set. Set the notification style to Persistent so reminders wait for you.
 3. Set your ideal leave time and how early or late you are willing to go. Settings shows the window as clock times.
 4. On the Route tab, choose direct only or up to one transfer, how early to be at the stop, how far to look for stops, your walking pace, and turn off any stops you would never use.
@@ -128,6 +128,7 @@ curl -o /tmp/at_gtfs.zip https://gtfs.at.govt.nz/gtfs.zip && mkdir -p /tmp/at_gt
 
 - `~/Library/Application Support/NZTransportPlanner/gtfs.sqlite` imported timetable
 - `~/Library/Application Support/NZTransportPlanner/app.log` rolling trace of imports, plans and notifications
+- Debug builds use the bundle ID `org.nztransportplanner.NZTransportPlanner.debug` and `~/Library/Application Support/NZTransportPlanner Debug/`, so they never share settings, permissions or data with an installed copy
 
 ## Privacy and credentials
 

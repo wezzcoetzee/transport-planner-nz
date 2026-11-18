@@ -41,6 +41,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: org.nztransportplanner.NZTransportPlanner
         ENABLE_HARDENED_RUNTIME: false
         SWIFT_OBJC_BRIDGING_HEADER: ""
+      configs:
+        # Debug runs keep their own settings, permissions and login item, so testing never touches an installed copy.
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: org.nztransportplanner.NZTransportPlanner.debug
   NZTransportPlannerTests:
     type: bundle.unit-test
     platform: macOS
