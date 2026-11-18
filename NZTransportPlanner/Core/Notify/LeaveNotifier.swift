@@ -27,7 +27,7 @@ struct ReminderSchedule: Equatable {
         guard misses < 2 else { return nil }
         if let id = targetID, let at = targetLeaveAt {
             if id == journeyID {
-                targetLeaveAt = leaveAt // realtime may shift the same trip
+                targetLeaveAt = leaveAt  // realtime may shift the same trip
             } else {
                 targetID = journeyID; targetLeaveAt = leaveAt
                 if now >= at {
@@ -51,7 +51,7 @@ struct ReminderSchedule: Equatable {
 
     /// The user chose the next bus. A target that never leaves makes the next journey a replacement, not a miss.
     mutating func skip(leads: [Int]) {
-        guard targetID != nil else { return } // nothing reminded yet: the next bus gets the normal reminders
+        guard targetID != nil else { return }  // nothing reminded yet: the next bus gets the normal reminders
         targetLeaveAt = .distantFuture
         fired = Set(leads.filter { $0 > 0 })
     }
@@ -77,7 +77,7 @@ final class LeaveNotifier {
     init() {
         let going = UNNotificationAction(identifier: Self.goingAction, title: "Going", options: [])
         let snooze = UNNotificationAction(identifier: Self.snoozeAction, title: "Next", options: [])
-        let skip = UNNotificationAction(identifier: Self.skipAction, title: "Not today", options: []) // undone from the popover, so not destructive
+        let skip = UNNotificationAction(identifier: Self.skipAction, title: "Not today", options: [])  // undone from the popover, so not destructive
         UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(identifier: Self.categoryID, actions: [going, snooze, skip], intentIdentifiers: []),
             UNNotificationCategory(identifier: Self.earlyCategoryID, actions: [snooze, skip], intentIdentifiers: []),
@@ -93,7 +93,7 @@ final class LeaveNotifier {
     static func problem() async -> String? {
         let s = await UNUserNotificationCenter.current().notificationSettings()
         return switch (s.authorizationStatus, s.alertStyle) {
-        case (.notDetermined, _): nil // the system prompt is on its way (asked once both places are set)
+        case (.notDetermined, _): nil  // the system prompt is on its way (asked once both places are set)
         case (.denied, _): "Notifications are off. Reminders can't reach you"
         case (_, .banner): "Reminders vanish after a few seconds. Set the alert style to Persistent"
         case (_, .none): "Reminders are hidden. Set the alert style to Persistent"
@@ -119,13 +119,21 @@ final class LeaveNotifier {
         case .lead: content.title = minutes <= 0 ? "Leave now" : "Leave in \(minutes) min, at \(journey.leaveAt.sentenceClock)"
         }
         content.body = journey.notificationBody
-        content.sound = .default // critical sounds need an Apple entitlement this ad-hoc signed app cannot have
-        let offersGoing = switch reminder { case .missed: true; case .lead(let l): l <= Self.soonMinutes }
+        content.sound = .default  // critical sounds need an Apple entitlement this ad-hoc signed app cannot have
+        let offersGoing =
+            switch reminder {
+            case .missed: true;
+            case .lead(let l): l <= Self.soonMinutes
+            }
         content.categoryIdentifier = offersGoing ? Self.categoryID : Self.earlyCategoryID
         content.interruptionLevel = isNow ? .timeSensitive : .active
         content.userInfo = ["journey": journey.id]
-        let id = switch reminder { case .lead(let l): "leave-\(journey.id)-\(l)"; case .missed: "missed-\(journey.id)" }
-        Self.clearDelivered() // with Persistent alerts, earlier reminders would otherwise pile up on screen
+        let id =
+            switch reminder {
+            case .lead(let l): "leave-\(journey.id)-\(l)";
+            case .missed: "missed-\(journey.id)"
+            }
+        Self.clearDelivered()  // with Persistent alerts, earlier reminders would otherwise pile up on screen
         postedLeaveAt = journey.leaveAt
         try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }

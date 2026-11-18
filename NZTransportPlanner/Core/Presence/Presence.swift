@@ -30,8 +30,11 @@ final class LocationMonitor {
         task = Task {
             do {
                 for try await update in CLLocationUpdate.liveUpdates() {
-                    if update.authorizationDenied || update.authorizationDeniedGlobally { onUpdate(nil) }
-                    else if let location = update.location { onUpdate(location) }
+                    if update.authorizationDenied || update.authorizationDeniedGlobally {
+                        onUpdate(nil)
+                    } else if let location = update.location {
+                        onUpdate(location)
+                    }
                 }
             } catch {
                 onError(error)

@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 struct Stop: Identifiable, Hashable, Sendable, Codable {
     let id: String
@@ -21,10 +21,18 @@ struct Route: Hashable, Sendable {
     let color: String?
 
     var modeName: String {
-        switch type { case 2: "Train"; case 4: "Ferry"; default: "Bus" }
+        switch type {
+        case 2: "Train";
+        case 4: "Ferry";
+        default: "Bus"
+        }
     }
     var symbolName: String {
-        switch type { case 2: "tram.fill"; case 4: "ferry.fill"; default: "bus.fill" }
+        switch type {
+        case 2: "tram.fill";
+        case 4: "ferry.fill";
+        default: "bus.fill"
+        }
     }
 }
 

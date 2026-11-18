@@ -73,7 +73,9 @@ final class SQLiteConnection {
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 protocol SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) }
-extension String: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_text(stmt.raw, index, self, -1, SQLITE_TRANSIENT) } }
+extension String: SQLiteBindable {
+    func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_text(stmt.raw, index, self, -1, SQLITE_TRANSIENT) }
+}
 extension Substring: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { String(self).bind(to: stmt, index: index) } }
 extension Int: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_int64(stmt.raw, index, Int64(self)) } }
 extension Double: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_double(stmt.raw, index, self) } }

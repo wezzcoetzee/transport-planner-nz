@@ -12,7 +12,7 @@ struct SettingsView: View {
             page(.route).tabItem { Label("Route", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }.tag(Tab.route)
             page(.data).tabItem { Label("Data", systemImage: "externaldrive") }.tag(Tab.data)
         }
-        .frame(width: 520) // each page sets its own height, so the window fits the tab like native Settings
+        .frame(width: 520)  // each page sets its own height, so the window fits the tab like native Settings
         .preferredColorScheme(.dark)
         .background(.black)
     }
@@ -32,7 +32,7 @@ private struct CommuteSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TodayLine(model: model).padding(.horizontal, 30).padding(.top, 20) // the section titles' inset and first-heading height
+            TodayLine(model: model).padding(.horizontal, 30).padding(.top, 20)  // the section titles' inset and first-heading height
             form
         }
     }
@@ -87,9 +87,10 @@ private struct CommuteSettings: View {
 
     /// "Earliest  16:40  20 min before": the clock time is what the user checks; the offset is what the stepper moves.
     private func offsetLabel(_ title: String, minutes: Int) -> some View {
-        ValueLabel(title: title,
-                   value: leaveTime.wrappedValue.addingTimeInterval(TimeInterval(minutes * 60)).sentenceClock,
-                   detail: minutes == 0 ? "the ideal time" : "\(abs(minutes)) min \(minutes < 0 ? "before" : "after")")
+        ValueLabel(
+            title: title,
+            value: leaveTime.wrappedValue.addingTimeInterval(TimeInterval(minutes * 60)).sentenceClock,
+            detail: minutes == 0 ? "the ideal time" : "\(abs(minutes)) min \(minutes < 0 ? "before" : "after")")
     }
 
     private var leaveTime: Binding<Date> {
@@ -143,7 +144,9 @@ private struct ValueLabel: View {
 /// window: on gains a check and full white, off stays dimmed. VoiceOver still hears a toggle and its value.
 private struct CheckToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        Button { configuration.isOn.toggle() } label: {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
             HStack(spacing: 3) {
                 if configuration.isOn { Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)) }
                 configuration.label
@@ -170,9 +173,12 @@ private struct WeekdayPicker: View {
             Text("Days")
             Spacer()
             ForEach(days, id: \.self) { day in
-                Toggle(Calendar.current.shortWeekdaySymbols[day - 1], isOn: Binding(get: { selection.contains(day) }, set: { on in if on { selection.insert(day) } else { selection.remove(day) } }))
-                    .toggleStyle(CheckToggleStyle())
-                    .accessibilityHint(Calendar.current.weekdaySymbols[day - 1])
+                Toggle(
+                    Calendar.current.shortWeekdaySymbols[day - 1],
+                    isOn: Binding(get: { selection.contains(day) }, set: { on in if on { selection.insert(day) } else { selection.remove(day) } })
+                )
+                .toggleStyle(CheckToggleStyle())
+                .accessibilityHint(Calendar.current.weekdaySymbols[day - 1])
             }
         }
     }
@@ -196,7 +202,7 @@ struct NotificationHint: View {
         }
         .task {
             #if DEBUG
-            guard !Screenshots.isEnabled else { return }
+                guard !Screenshots.isEnabled else { return }
             #endif
             problem = await LeaveNotifier.problem()
         }
@@ -214,7 +220,8 @@ struct NotificationHint: View {
         if !allowed || problem != nil { NSWorkspace.shared.open(Self.settingsURL) }
     }
 
-    private static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(Bundle.main.bundleIdentifier ?? "")")!
+    private static let settingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(Bundle.main.bundleIdentifier ?? "")")!
 }
 
 /// Reminders only come at the office; this speaks up only when location stops that from working.
@@ -236,10 +243,10 @@ private struct LocationHint: View {
 
     private var text: String? {
         switch model.presence {
-        case .atOffice, .away: nil // away is the popover's headline, and nothing here would change it
+        case .atOffice, .away: nil  // away is the popover's headline, and nothing here would change it
         case .unknown where model.locationDenied: "Location is off. Reminders show wherever you are"
         case .unknown where model.location != nil: "Location too vague to tell. Reminders show wherever you are"
-        case .unknown: nil // still looking; reminders behave as if at the office meanwhile
+        case .unknown: nil  // still looking; reminders behave as if at the office meanwhile
         }
     }
 
@@ -256,9 +263,12 @@ private struct LeadPicker: View {
             Text("Remind")
             Spacer()
             ForEach(options, id: \.self) { m in
-                Toggle(m == 0 ? "Now" : "\(m) min", isOn: Binding(
-                    get: { leads.contains(m) },
-                    set: { on in leads = on ? (leads + [m]).sorted(by: >) : leads.filter { $0 != m } }))
+                Toggle(
+                    m == 0 ? "Now" : "\(m) min",
+                    isOn: Binding(
+                        get: { leads.contains(m) },
+                        set: { on in leads = on ? (leads + [m]).sorted(by: >) : leads.filter { $0 != m } })
+                )
                 .toggleStyle(CheckToggleStyle())
                 .accessibilityHint(m == 0 ? "At the leave time" : "\(m) minutes before the leave time")
             }
@@ -276,7 +286,9 @@ private struct RouteSettings: View {
     var body: some View {
         Form {
             Section("Getting there") {
-                Picker("Transfers", selection: $model.settings.maxTransfers) { Text("Direct only").tag(0); Text("Up to one").tag(1) }
+                Picker("Transfers", selection: $model.settings.maxTransfers) {
+                    Text("Direct only").tag(0); Text("Up to one").tag(1)
+                }
                 Stepper(value: bufferMinutes, in: 0...10) {
                     ValueLabel(title: "Be at the stop", value: "\(bufferMinutes.wrappedValue) min", detail: "before the bus")
                 }
@@ -307,8 +319,11 @@ private struct RouteSettings: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .task(id: StopQuery(office: model.settings.office, home: model.settings.home,
-                            radius: model.settings.stopSearchRadiusMeters, hasTimetable: model.hasTimetable, feed: model.feedVersion)) {
+        .task(
+            id: StopQuery(
+                office: model.settings.office, home: model.settings.home,
+                radius: model.settings.stopSearchRadiusMeters, hasTimetable: model.hasTimetable, feed: model.feedVersion)
+        ) {
             officeStops = if let o = model.settings.office { await model.candidateStops(for: o) } else { [] }
             homeStops = if let h = model.settings.home { await model.candidateStops(for: h) } else { [] }
         }
@@ -316,14 +331,16 @@ private struct RouteSettings: View {
 
     /// The planner works in seconds; the setting is whole minutes so the label always matches what is stored.
     private var bufferMinutes: Binding<Int> {
-        Binding(get: { Int((Double(model.settings.boardingBufferSeconds) / 60).rounded()) },
-                set: { model.settings.boardingBufferSeconds = $0 * 60 })
+        Binding(
+            get: { Int((Double(model.settings.boardingBufferSeconds) / 60).rounded()) },
+            set: { model.settings.boardingBufferSeconds = $0 * 60 })
     }
 
     /// Stored in m/s for the planner, shown and stepped in whole km/h, the unit people know their pace in.
     private var walkKmh: Binding<Int> {
-        Binding(get: { Int((model.settings.walkMetersPerSecond * 3.6).rounded()) },
-                set: { model.settings.walkMetersPerSecond = Double($0) / 3.6 })
+        Binding(
+            get: { Int((model.settings.walkMetersPerSecond * 3.6).rounded()) },
+            set: { model.settings.walkMetersPerSecond = Double($0) / 3.6 })
     }
 
     private func walkMinutes(_ straightLine: Double) -> Int {
@@ -342,25 +359,29 @@ private struct RouteSettings: View {
         }
     }
 
-    @ViewBuilder private func stopRows(place: Place?, missing: String, loaded: [(stop: Stop, distance: Double)]?, _ stops: [(stop: Stop, distance: Double)]) -> some View {
-            if place == nil {
-                Text(missing).foregroundStyle(.secondary)
-            } else if loaded != nil, stops.isEmpty {
-                Text("No stops within \(Int(model.settings.stopSearchRadiusMeters)) m").monospacedDigit().foregroundStyle(.secondary)
-            }
-            ForEach(stops, id: \.stop.id) { entry in
-                Toggle(isOn: Binding(
+    @ViewBuilder private func stopRows(place: Place?, missing: String, loaded: [(stop: Stop, distance: Double)]?, _ stops: [(stop: Stop, distance: Double)])
+        -> some View
+    {
+        if place == nil {
+            Text(missing).foregroundStyle(.secondary)
+        } else if loaded != nil, stops.isEmpty {
+            Text("No stops within \(Int(model.settings.stopSearchRadiusMeters)) m").monospacedDigit().foregroundStyle(.secondary)
+        }
+        ForEach(stops, id: \.stop.id) { entry in
+            Toggle(
+                isOn: Binding(
                     get: { !model.settings.excludedStopIDs.contains(entry.stop.id) },
-                    set: { on in if on { model.settings.excludedStopIDs.remove(entry.stop.id) } else { model.settings.excludedStopIDs.insert(entry.stop.id) } })) {
-                    HStack {
-                        Text(entry.stop.name)
-                        Text(entry.stop.code).foregroundStyle(.secondary)
-                        Spacer()
-                        // The same walk the popover shows: street distance at the chosen pace, not a straight line.
-                        Text("\(walkMinutes(entry.distance)) min walk").monospacedDigit().foregroundStyle(.secondary)
-                    }
+                    set: { on in if on { model.settings.excludedStopIDs.remove(entry.stop.id) } else { model.settings.excludedStopIDs.insert(entry.stop.id) } })
+            ) {
+                HStack {
+                    Text(entry.stop.name)
+                    Text(entry.stop.code).foregroundStyle(.secondary)
+                    Spacer()
+                    // The same walk the popover shows: street distance at the chosen pace, not a straight line.
+                    Text("\(walkMinutes(entry.distance)) min walk").monospacedDigit().foregroundStyle(.secondary)
                 }
             }
+        }
     }
 }
 
@@ -393,12 +414,14 @@ private struct DataSettings: View {
                 case .rejected, .unreachable: Text(model.realtimeStatus.problem ?? "").font(.caption).foregroundStyle(.orange)
                 case .off:
                     if !model.settings.atSubscriptionKey.isEmpty {
-                        Text("Saved. Checking now").font(.caption).foregroundStyle(.secondary) // a settings change replans within seconds
+                        Text("Saved. Checking now").font(.caption).foregroundStyle(.secondary)  // a settings change replans within seconds
                     }
                 }
                 if model.settings.atSubscriptionKey.isEmpty || model.realtimeStatus == .rejected {
-                    Text("Free from [__dev-portal.at.govt.nz__](https://dev-portal.at.govt.nz): subscribe to the Realtime API and paste the primary key. Without a working key, times come from the timetable")
-                        .font(.caption).foregroundStyle(.secondary).tint(.white)
+                    Text(
+                        "Free from [__dev-portal.at.govt.nz__](https://dev-portal.at.govt.nz): subscribe to the Realtime API and paste the primary key. Without a working key, times come from the timetable"
+                    )
+                    .font(.caption).foregroundStyle(.secondary).tint(.white)
                 }
             }
         }

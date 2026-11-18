@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 
 struct Leg: Hashable, Sendable, Identifiable {
     enum Kind: Hashable, Sendable {

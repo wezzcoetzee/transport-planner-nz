@@ -13,7 +13,8 @@ final class LeavePanel {
         guard let journey = model.recommended else { return }
         close()
         let host = NSHostingView(rootView: LeavePrompt(journey: journey, model: model))
-        let p = KeyablePanel(contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
+        let p = KeyablePanel(
+            contentRect: NSRect(origin: .zero, size: host.fittingSize), styleMask: [.nonactivatingPanel, .borderless], backing: .buffered, defer: false)
         p.contentView = host
         p.level = .statusBar
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -23,9 +24,12 @@ final class LeavePanel {
         p.hidesOnDeactivate = false
         p.setFrameTopLeftPoint(Self.anchor(width: host.fittingSize.width))
         p.orderFrontRegardless()
-        NSAccessibility.post(element: p, notification: .announcementRequested,
-                             userInfo: [.announcement: "\(AppModel.spokenLeave(journey.leaveAt, now: .now)). \(journey.notificationBody)",
-                                        .priority: NSAccessibilityPriorityLevel.high.rawValue])
+        NSAccessibility.post(
+            element: p, notification: .announcementRequested,
+            userInfo: [
+                .announcement: "\(AppModel.spokenLeave(journey.leaveAt, now: .now)). \(journey.notificationBody)",
+                .priority: NSAccessibilityPriorityLevel.high.rawValue,
+            ])
         panel = p
         journeyID = journey.id
     }
@@ -57,7 +61,7 @@ private struct FilledAnswerStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: NSFont.smallSystemFontSize, weight: .semibold)) // the small control size of Next beside it
+            .font(.system(size: NSFont.smallSystemFontSize, weight: .semibold))  // the small control size of Next beside it
             .foregroundStyle(.white)
             .padding(.horizontal, 10).padding(.vertical, 3)
             .background(Color(white: configuration.isPressed ? 0.28 : 0.35), in: .rect(cornerRadius: 5))

@@ -64,7 +64,7 @@ To package a disk image for installing on another Mac:
 
 The build is ad-hoc signed, not notarised. On first open, right-click the app and choose Open, or allow it under System Settings > Privacy & Security.
 
-Pull requests and pushes to `main` run the tests (and `swift format lint` when a `.swift-format` config exists) through the [shared macOS CI workflow](https://github.com/wezzcoetzee/.github/blob/main/.github/workflows/macos-ci.yml).
+Pull requests and pushes to `main` run `swift format lint --strict` and the tests through the [shared macOS CI workflow](https://github.com/wezzcoetzee/.github/blob/main/.github/workflows/macos-ci.yml). Run `swift format format -i -r .` to fix formatting before pushing.
 
 To publish a release, push a version tag:
 

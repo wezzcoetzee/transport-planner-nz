@@ -6,7 +6,8 @@ enum GTFSTime {
     static func seconds(from text: Substring) -> Int? {
         let parts = text.split(separator: ":", omittingEmptySubsequences: false)
         guard parts.count == 3,
-              let h = Int(parts[0]), let m = Int(parts[1]), let s = Int(parts[2]) else { return nil }
+            let h = Int(parts[0]), let m = Int(parts[1]), let s = Int(parts[2])
+        else { return nil }
         return h * 3600 + m * 60 + s
     }
 
@@ -20,7 +21,7 @@ enum GTFSTime {
 
 /// A GTFS service day in the feed's timezone. Trips that run past midnight belong to the previous day.
 struct ServiceDay: Hashable, Sendable {
-    let date: DateComponents // year, month, day only
+    let date: DateComponents  // year, month, day only
     let midnight: Date
     let timeZone: TimeZone
 
