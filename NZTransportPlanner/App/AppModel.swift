@@ -46,7 +46,6 @@ final class AppModel {
     private var destinationAllOff = false
     private(set) var lastRefresh: Date?
     private(set) var isRefreshing = false
-    /// A timetable check or download is running.
     private(set) var isImporting = false
     /// The last store open, timetable import or plan failed; cleared by the next success.
     private(set) var hasError = false
@@ -59,7 +58,6 @@ final class AppModel {
     private(set) var nothingToday = false
     private(set) var importPhase: GTFSImporter.Phase = .idle
     private(set) var feedVersion: String?
-    /// When the timetable on disk was downloaded.
     private(set) var importedAt: Date?
     private(set) var realtimeStatus: RealtimeStatus = .off
     /// Today's commute is settled: dismissed with "Not today" or confirmed with "Going".
@@ -315,7 +313,6 @@ final class AppModel {
         }
     }
 
-    /// The download action named for what it will do in the current state.
     var downloadActionTitle: String {
         if case .failed = importPhase { return "Retry download" }
         return hasTimetable || storeUnreadable ? "Download again" : "Download"
@@ -716,6 +713,5 @@ final class AppModel {
 #endif
 
 extension Notification.Name {
-    /// Posted once the notification permission prompt has been answered.
     static let notificationPermissionAnswered = Notification.Name("notificationPermissionAnswered")
 }

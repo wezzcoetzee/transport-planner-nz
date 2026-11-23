@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 
 /// A stop the user can walk to, with the walking time from their location.
-struct AccessStop: Hashable, Sendable, Codable {
+struct AccessStop: Hashable, Sendable {
     let stop: Stop
     let walkMeters: Double
     let walkSeconds: Int

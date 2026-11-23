@@ -34,10 +34,6 @@ struct Journey: Hashable, Sendable, Identifiable {
     var transfers: Int { max(0, rides.count - 1) }
     var firstRide: Leg { rides.first! }
     var firstBoardStop: Stop? { if case .ride(_, _, let board, _, _, _) = firstRide.kind { board } else { nil } }
-    var firstBoardSequence: Int? { if case .ride(_, _, _, _, let seq, _) = firstRide.kind { seq } else { nil } }
-    var isRealtime: Bool { realtimeDelay != nil }
-    /// Stops ridden through across every ride leg.
-    var stopCount: Int { rides.reduce(0) { if case .ride(_, _, _, _, _, let n) = $1.kind { $0 + n } else { $0 } } }
 
     /// Route short names in order, e.g. "70 → EAST"
     var summary: String {

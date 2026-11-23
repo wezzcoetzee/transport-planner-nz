@@ -3,34 +3,25 @@ import Foundation
 /// GTFS times are "HH:MM:SS" measured from noon-minus-12h of the service day and may exceed 24:00:00.
 /// We store them as seconds since the service day's nominal midnight.
 enum GTFSTime {
-    static func seconds(from text: Substring) -> Int? {
+    static func seconds(from text: String) -> Int? {
         let parts = text.split(separator: ":", omittingEmptySubsequences: false)
         guard parts.count == 3,
             let h = Int(parts[0]), let m = Int(parts[1]), let s = Int(parts[2])
         else { return nil }
         return h * 3600 + m * 60 + s
     }
-
-    static func seconds(from text: String) -> Int? { seconds(from: Substring(text)) }
-
-    static func clock(_ seconds: Int) -> String {
-        let h = (seconds / 3600) % 24, m = (seconds % 3600) / 60
-        return String(format: "%02d:%02d", h, m)
-    }
 }
 
 /// A GTFS service day in the feed's timezone. Trips that run past midnight belong to the previous day.
 struct ServiceDay: Hashable, Sendable {
-    let date: DateComponents  // year, month, day only
+    let date: DateComponents
     let midnight: Date
-    let timeZone: TimeZone
 
     init(containing instant: Date, timeZone: TimeZone, dayOffset: Int = 0) {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = timeZone
         var start = cal.startOfDay(for: instant)
         if dayOffset != 0 { start = cal.date(byAdding: .day, value: dayOffset, to: start)! }
-        self.timeZone = timeZone
         // GTFS counts from noon minus 12 h, which is midnight except on daylight saving days, when it is an hour off.
         let noon = cal.date(bySettingHour: 12, minute: 0, second: 0, of: start) ?? start.addingTimeInterval(12 * 3600)
         self.midnight = noon.addingTimeInterval(-12 * 3600)

@@ -120,11 +120,7 @@ xcodegen generate
 xcodebuild -project NZTransportPlanner.xcodeproj -scheme NZTransportPlanner -destination 'platform=macOS' -derivedDataPath build/DerivedData test
 ```
 
-Unit tests use a small synthetic feed. An end-to-end test against the real AT feed runs only if the feed is extracted to `/tmp/at_gtfs`:
-
-```sh
-curl -o /tmp/at_gtfs.zip https://gtfs.at.govt.nz/gtfs.zip && mkdir -p /tmp/at_gtfs && unzip -o /tmp/at_gtfs.zip -d /tmp/at_gtfs
-```
+Unit tests run against a small synthetic feed.
 
 ## Files
 

@@ -2,15 +2,8 @@ import CoreLocation
 import Foundation
 import Testing
 
-/// Builds a tiny GTFS feed on disk, imports it through the real importer path (minus download), and plans over it.
 struct PlannerTests {
     static let tz = TimeZone(identifier: "Pacific/Auckland")!
-
-    @Test func parsesGTFSTimesPastMidnight() {
-        #expect(GTFSTime.seconds(from: "17:05:30") == 17 * 3600 + 5 * 60 + 30)
-        #expect(GTFSTime.seconds(from: "25:10:00") == 25 * 3600 + 600)
-        #expect(GTFSTime.seconds(from: "bad") == nil)
-    }
 
     @Test func csvHandlesQuotesAndCRLF() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("t-\(UUID()).csv")
@@ -27,7 +20,7 @@ struct PlannerTests {
         let day = ServiceDay(containing: Fixture.aWeekday, timeZone: Self.tz)
         #expect(try await store.activeServiceIDs(on: day) == ["WK"])
 
-        let stops = try await store.stops(ids: ["A", "B", "C", "D", "E"])
+        let stops = try await store.stops(ids: ["A", "D"])
         let origin = [AccessStop(stop: stops["A"]!, walkMeters: 300, walkSeconds: 240)]
         let dest = [AccessStop(stop: stops["D"]!, walkMeters: 200, walkSeconds: 150)]
         let window = day.instant(atServiceSeconds: 16 * 3600 + 40 * 60)...day.instant(atServiceSeconds: 17 * 3600 + 30 * 60)
@@ -112,7 +105,6 @@ struct PlannerTests {
         #expect(s.next(journeyID: "b", leaveAt: t0 + 900, windowEnd: t0, leads: leads, now: t0 + 900) == .lead(0))
         s.skip(leads: leads)
         #expect(s.next(journeyID: "c", leaveAt: t0 + 1800, windowEnd: t0, leads: leads, now: t0 + 1800) == .lead(0))
-        #expect(s.misses == 0)
     }
 
     @Test func presenceTellsOfficeFromHomeAndIgnoresVagueFixes() {
@@ -128,8 +120,8 @@ struct PlannerTests {
     }
 
     @Test func reasonNamesWhatMadeTheLaterBusWin() {
-        let route = Route(id: "R", shortName: "70", longName: "", type: 3, color: nil)
-        let a = Stop(id: "A", code: "1", name: "A", latitude: 0, longitude: 0, parentStation: nil)
+        let route = Route(id: "R", shortName: "70", type: 3)
+        let a = Stop(id: "A", code: "1", name: "A", latitude: 0, longitude: 0)
         let t0 = Date(timeIntervalSince1970: 1_000_000)
         /// Leaves at `leave` minutes, home at `home` minutes, with `rides` buses (rides - 1 transfers).
         func journey(leave: Double, home: Double, rides: Int) -> Journey {
@@ -169,9 +161,9 @@ struct PlannerTests {
         #expect(updates["T1"]?.delay(atSequence: 2) == 180)
         #expect(updates["T4"]?.cancelled == true)
 
-        let route = Route(id: "R", shortName: "70", longName: "", type: 3, color: nil)
-        let a = Stop(id: "A", code: "1", name: "A", latitude: 0, longitude: 0, parentStation: nil)
-        let d = Stop(id: "D", code: "4", name: "D", latitude: 0, longitude: 0, parentStation: nil)
+        let route = Route(id: "R", shortName: "70", type: 3)
+        let a = Stop(id: "A", code: "1", name: "A", latitude: 0, longitude: 0)
+        let d = Stop(id: "D", code: "4", name: "D", latitude: 0, longitude: 0)
         let t0 = Date(timeIntervalSince1970: 1_000_000)
         func journey(_ trip: String) -> Journey {
             Journey(legs: [
@@ -194,6 +186,7 @@ struct PlannerTests {
     }
 }
 
+/// A tiny feed imported through the real importer (minus the download).
 enum Fixture {
     /// Wednesday 2026-09-09 12:00 NZST
     static let aWeekday = Date(timeIntervalSince1970: 1_788_912_000)

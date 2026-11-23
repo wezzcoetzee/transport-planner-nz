@@ -1,7 +1,7 @@
 import CoreLocation
 import Foundation
 
-/// Read side of the imported GTFS feed. All queries run on this actor.
+/// Read side of the imported GTFS feed.
 actor GTFSStore {
     static let feedTimeZone = TimeZone(identifier: "Pacific/Auckland")!
     static let feedCalendar: Calendar = {
@@ -14,10 +14,8 @@ actor GTFSStore {
     }
 
     private let db: SQLiteConnection
-    let path: String
 
     init(path: String) throws {
-        self.path = path
         db = try SQLiteConnection(path: path, readOnly: true)
     }
 
@@ -31,7 +29,6 @@ actor GTFSStore {
 
     var feedVersion: String? { meta("feed_version") }
     var importedAt: Date? { meta("imported_at").flatMap(Double.init).map(Date.init(timeIntervalSince1970:)) }
-    var feedEndDate: Int? { meta("feed_end_date").flatMap(Int.init) }
 
     // MARK: Stops
 
@@ -40,7 +37,7 @@ actor GTFSStore {
         let dLon = radiusMeters / (111_320 * cos(coordinate.latitude * .pi / 180))
         let rows = try db.query(
             """
-            SELECT stop_id, stop_code, stop_name, stop_lat, stop_lon, parent_station FROM stops
+            SELECT stop_id, stop_code, stop_name, stop_lat, stop_lon FROM stops
             WHERE location_type = 0 AND stop_lat BETWEEN ? AND ? AND stop_lon BETWEEN ? AND ?
             """,
             bind: [coordinate.latitude - dLat, coordinate.latitude + dLat, coordinate.longitude - dLon, coordinate.longitude + dLon],
@@ -56,15 +53,13 @@ actor GTFSStore {
     func stops(ids: [String]) throws -> [String: Stop] {
         guard !ids.isEmpty else { return [:] }
         let rows = try db.query(
-            "SELECT stop_id, stop_code, stop_name, stop_lat, stop_lon, parent_station FROM stops WHERE stop_id IN (\(sqlPlaceholders(ids.count)))",
+            "SELECT stop_id, stop_code, stop_name, stop_lat, stop_lon FROM stops WHERE stop_id IN (\(sqlPlaceholders(ids.count)))",
             bind: ids, map: Self.stop)
         return Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
     }
 
     private static func stop(_ s: SQLiteConnection.Statement) -> Stop {
-        Stop(
-            id: s.text(0), code: s.text(1), name: s.text(2), latitude: s.double(3), longitude: s.double(4),
-            parentStation: s.isNull(5) || s.text(5).isEmpty ? nil : s.text(5))
+        Stop(id: s.text(0), code: s.text(1), name: s.text(2), latitude: s.double(3), longitude: s.double(4))
     }
 
     // MARK: Calendar
@@ -85,7 +80,7 @@ actor GTFSStore {
 
     // MARK: Timetable
 
-    /// Departures from any of `stopIDs` within [from, to] service seconds on active services.
+    /// `from` and `to` are service seconds.
     func departures(from stopIDs: [String], between from: Int, and to: Int, services: Set<String>) throws -> [StopTime] {
         guard !stopIDs.isEmpty, !services.isEmpty else { return [] }
         return try db.query(
@@ -100,7 +95,6 @@ actor GTFSStore {
             map: Self.stopTime)
     }
 
-    /// All stop_times after `sequence` on each trip, keyed by trip.
     func downstreamStops(of trips: [(tripID: String, afterSequence: Int)]) throws -> [String: [StopTime]] {
         guard !trips.isEmpty else { return [:] }
         let stmt = try db.prepare(
@@ -115,8 +109,8 @@ actor GTFSStore {
         return out
     }
 
-    /// Stop times on trips that will later reach any destination stop today, departing within the window.
-    /// Returned rows are potential boarding points for the final leg; `destinationArrival` is when that trip reaches the destination.
+    /// Boarding points for the final leg: stop times departing within the window on trips that later reach a
+    /// destination stop, each paired with that trip's stop time at the destination.
     func feederLegs(toward destinationStopIDs: [String], departingBetween from: Int, and to: Int, services: Set<String>)
         throws -> [(board: StopTime, alight: StopTime)]
     {
@@ -159,10 +153,9 @@ actor GTFSStore {
     func routes(ids: [String]) throws -> [String: Route] {
         guard !ids.isEmpty else { return [:] }
         let rows = try db.query(
-            "SELECT route_id, route_short_name, route_long_name, route_type, route_color FROM routes WHERE route_id IN (\(sqlPlaceholders(ids.count)))",
-            bind: ids
+            "SELECT route_id, route_short_name, route_type FROM routes WHERE route_id IN (\(sqlPlaceholders(ids.count)))", bind: ids
         ) {
-            Route(id: $0.text(0), shortName: $0.text(1), longName: $0.text(2), type: $0.int(3), color: $0.text(4).isEmpty ? nil : $0.text(4))
+            Route(id: $0.text(0), shortName: $0.text(1), type: $0.int(2))
         }
         return Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
     }

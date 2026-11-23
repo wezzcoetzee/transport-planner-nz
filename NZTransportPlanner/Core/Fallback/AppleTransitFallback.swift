@@ -7,7 +7,6 @@ enum AppleTransitFallback {
     struct Estimate: Sendable, Hashable {
         let departure: Date
         let arrival: Date
-        var travelTime: TimeInterval { arrival.timeIntervalSince(departure) }
     }
 
     static func estimate(from origin: Place, to destination: Place, departingAt date: Date) async throws -> Estimate {

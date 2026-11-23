@@ -36,7 +36,6 @@ final class SQLiteConnection {
         return Statement(stmt)
     }
 
-    /// Runs a query and maps each row.
     func query<T>(_ sql: String, bind: [SQLiteBindable] = [], map: (Statement) throws -> T) throws -> [T] {
         let stmt = try prepare(sql)
         for (i, v) in bind.enumerated() { v.bind(to: stmt, index: Int32(i + 1)) }
@@ -66,7 +65,6 @@ final class SQLiteConnection {
         func text(_ col: Int32) -> String { sqlite3_column_text(raw, col).map { String(cString: $0) } ?? "" }
         func int(_ col: Int32) -> Int { Int(sqlite3_column_int64(raw, col)) }
         func double(_ col: Int32) -> Double { sqlite3_column_double(raw, col) }
-        func isNull(_ col: Int32) -> Bool { sqlite3_column_type(raw, col) == SQLITE_NULL }
     }
 }
 
@@ -76,7 +74,6 @@ protocol SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: 
 extension String: SQLiteBindable {
     func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_text(stmt.raw, index, self, -1, SQLITE_TRANSIENT) }
 }
-extension Substring: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { String(self).bind(to: stmt, index: index) } }
 extension Int: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_int64(stmt.raw, index, Int64(self)) } }
 extension Double: SQLiteBindable { func bind(to stmt: SQLiteConnection.Statement, index: Int32) { sqlite3_bind_double(stmt.raw, index, self) } }
 extension Optional: SQLiteBindable where Wrapped: SQLiteBindable {
