@@ -18,10 +18,10 @@ enum Reminder: Equatable {
 /// - Choosing "Next" is not a miss: the next journey gets only "leave now".
 /// - A second miss ends reminders for the day. The menu bar keeps counting down.
 struct ReminderSchedule: Equatable {
-    private(set) var targetID: String?
-    private(set) var targetLeaveAt: Date?
-    private(set) var fired: Set<Int> = []
-    private(set) var misses = 0
+    private var targetID: String?
+    private var targetLeaveAt: Date?
+    private var fired: Set<Int> = []
+    private var misses = 0
 
     mutating func next(journeyID: String, leaveAt: Date, windowEnd: Date, leads: [Int], now: Date) -> Reminder? {
         guard misses < 2 else { return nil }
@@ -169,7 +169,7 @@ extension Journey {
         "home \(arriveAt.sentenceClock)" + (transfers > 0 ? ", \(transfers) transfer" : "")
     }
 
-    /// "4 min late" when the first bus is three minutes or more behind; smaller shifts are already in the times shown.
+    /// "4 min late".
     var delayNote: String? { isNotablyLate ? "\((realtimeDelay ?? 0) / 60) min late" : nil }
 
     /// "INN 5:08 pm from Lower Albert Street, 4 min late, home 5:23 pm": the delay belongs to the bus, not to home.

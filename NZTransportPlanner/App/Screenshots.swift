@@ -105,7 +105,7 @@
         }
 
         private static func stop(_ id: String, _ code: String, _ name: String) -> Stop {
-            Stop(id: id, code: code, name: name, latitude: 0, longitude: 0, parentStation: nil)
+            Stop(id: id, code: code, name: name, latitude: 0, longitude: 0)
         }
 
         private static func demoStops(_ place: Place) -> [(stop: Stop, distance: Double)] {
@@ -121,7 +121,7 @@
         /// Four departures from `firstLeaveIn` minutes out; the second needs a transfer.
         private static func demoJourneys(delay: Int?, firstLeaveIn: Double = 12) -> [Journey] {
             let now = Date.now
-            func route(_ name: String) -> Route { Route(id: name, shortName: name, longName: name, type: 3, color: nil) }
+            func route(_ name: String) -> Route { Route(id: name, shortName: name, type: 3) }
             let lower = stop("1", "7036", "Lower Albert Street"), customs = stop("2", "1315", "Customs Street West")
             let ponsonby = stop("3", "8124", "Ponsonby Road"), k = stop("4", "7110", "Karangahape Road")
             func ride(_ r: String, _ headsign: String, _ from: Stop, _ to: Stop, _ dep: Double, _ mins: Double, _ stops: Int) -> Leg {

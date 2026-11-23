@@ -11,16 +11,15 @@ actor GTFSImporter {
     }
 
     let destinationPath: String
-    private(set) var phase: Phase = .idle
     private var onPhase: (@Sendable (Phase) -> Void)?
 
     init(destinationPath: String) { self.destinationPath = destinationPath }
 
     func observe(_ handler: @escaping @Sendable (Phase) -> Void) { onPhase = handler }
 
-    private func set(_ p: Phase) { phase = p; onPhase?(p) }
+    private func set(_ p: Phase) { onPhase?(p) }
 
-    /// Returns the ETag of the remote feed, used to skip unchanged downloads.
+    /// The remote feed's ETag, used to skip unchanged downloads.
     static func remoteETag() async -> String? {
         var req = URLRequest(url: feedURL); req.httpMethod = "HEAD"; req.timeoutInterval = 15
         guard let (_, resp) = try? await URLSession.shared.data(for: req) else { return nil }
@@ -75,8 +74,8 @@ actor GTFSImporter {
             """
             PRAGMA journal_mode = OFF; PRAGMA synchronous = OFF; PRAGMA temp_store = MEMORY; PRAGMA cache_size = -200000;
             CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-            CREATE TABLE stops (stop_id TEXT PRIMARY KEY, stop_code TEXT, stop_name TEXT, stop_lat REAL, stop_lon REAL, location_type INTEGER, parent_station TEXT);
-            CREATE TABLE routes (route_id TEXT PRIMARY KEY, route_short_name TEXT, route_long_name TEXT, route_type INTEGER, route_color TEXT);
+            CREATE TABLE stops (stop_id TEXT PRIMARY KEY, stop_code TEXT, stop_name TEXT, stop_lat REAL, stop_lon REAL, location_type INTEGER);
+            CREATE TABLE routes (route_id TEXT PRIMARY KEY, route_short_name TEXT, route_type INTEGER);
             CREATE TABLE trips (trip_id TEXT PRIMARY KEY, route_id TEXT, service_id TEXT, trip_headsign TEXT, direction_id INTEGER);
             CREATE TABLE stop_times (trip_id TEXT, stop_id TEXT, stop_sequence INTEGER, arrival INTEGER, departure INTEGER);
             CREATE TABLE calendar (service_id TEXT PRIMARY KEY, monday INTEGER, tuesday INTEGER, wednesday INTEGER, thursday INTEGER, friday INTEGER, saturday INTEGER, sunday INTEGER, start_date INTEGER, end_date INTEGER);
@@ -84,16 +83,16 @@ actor GTFSImporter {
             """)
 
         try importTable(
-            db, dir, "stops.txt", "INSERT OR REPLACE INTO stops VALUES (?,?,?,?,?,?,?)",
-            columns: ["stop_id", "stop_code", "stop_name", "stop_lat", "stop_lon", "location_type", "parent_station"]
+            db, dir, "stops.txt", "INSERT OR REPLACE INTO stops VALUES (?,?,?,?,?,?)",
+            columns: ["stop_id", "stop_code", "stop_name", "stop_lat", "stop_lon", "location_type"]
         ) { r in
-            [r[0], r[1], r[2], Double(r[3]) ?? 0, Double(r[4]) ?? 0, Int(r[5]) ?? 0, r[6]]
+            [r[0], r[1], r[2], Double(r[3]) ?? 0, Double(r[4]) ?? 0, Int(r[5]) ?? 0]
         }
         try importTable(
-            db, dir, "routes.txt", "INSERT OR REPLACE INTO routes VALUES (?,?,?,?,?)",
-            columns: ["route_id", "route_short_name", "route_long_name", "route_type", "route_color"]
+            db, dir, "routes.txt", "INSERT OR REPLACE INTO routes VALUES (?,?,?)",
+            columns: ["route_id", "route_short_name", "route_type"]
         ) { r in
-            [r[0], r[1], r[2], Int(r[3]) ?? 3, r[4]]
+            [r[0], r[1], Int(r[2]) ?? 3]
         }
         try importTable(
             db, dir, "trips.txt", "INSERT OR REPLACE INTO trips VALUES (?,?,?,?,?)",
@@ -131,9 +130,10 @@ actor GTFSImporter {
 
         var info: [String: String] = ["imported_at": String(Date().timeIntervalSince1970)]
         if let etag { info["etag"] = etag }
-        if var feed = try? CSVReader(url: dir.appendingPathComponent("feed_info.txt")), let row = feed.next() {
-            if let i = feed.index(of: "feed_version") { info["feed_version"] = row[i] }
-            if let i = feed.index(of: "feed_end_date") { info["feed_end_date"] = row[i] }
+        if var feed = try? CSVReader(url: dir.appendingPathComponent("feed_info.txt")), let row = feed.next(),
+            let i = feed.index(of: "feed_version")
+        {
+            info["feed_version"] = row[i]
         }
         let insertMeta = try db.prepare("INSERT INTO meta VALUES (?, ?)")
         for (k, v) in info { insertMeta.reset(); insertMeta.bind(k, v); _ = try insertMeta.step() }

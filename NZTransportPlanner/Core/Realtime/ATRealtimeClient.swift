@@ -7,12 +7,10 @@ struct ATRealtimeClient: Sendable {
     private static let log = Logger(subsystem: "org.nztransportplanner.NZTransportPlanner", category: "realtime")
 
     let subscriptionKey: String
-    var session: URLSession = .shared
 
     struct TripUpdate: Sendable {
-        let tripID: String
         let cancelled: Bool
-        /// (stop_sequence, delay seconds) for each reported stop, ascending by sequence.
+        /// Delay in seconds for each reported stop, ascending by sequence.
         let stopDelays: [(sequence: Int, delay: Int)]
 
         /// Delay expected at `sequence`: the most recent report at or before it, else the earliest report after it.
@@ -40,7 +38,7 @@ struct ATRealtimeClient: Sendable {
         req.setValue(subscriptionKey, forHTTPHeaderField: "Ocp-Apim-Subscription-Key")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.timeoutInterval = 15
-        let (data, resp) = try await session.data(for: req)
+        let (data, resp) = try await URLSession.shared.data(for: req)
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         if code == 401 || code == 403 { throw ClientError.unauthorized }
         guard (200..<300).contains(code) else { throw ClientError.http(code) }
@@ -69,13 +67,13 @@ struct ATRealtimeClient: Sendable {
                 if let d = event?["delay"] as? Int { delays.append((seq, d)) }
             }
             delays.sort { $0.0 < $1.0 }
-            out[tripID] = TripUpdate(tripID: tripID, cancelled: cancelled, stopDelays: delays.map { (sequence: $0.0, delay: $0.1) })
+            out[tripID] = TripUpdate(cancelled: cancelled, stopDelays: delays.map { (sequence: $0.0, delay: $0.1) })
         }
         return out
     }
 }
 
-/// Applies realtime trip updates to scheduled journeys.
+/// Shifts journeys by their first bus's delay, dropping any whose transfer the delay breaks.
 enum RealtimeAdjuster {
     static func apply(_ updates: [String: ATRealtimeClient.TripUpdate], to journeys: [Journey]) -> [Journey] {
         journeys.compactMap { j in

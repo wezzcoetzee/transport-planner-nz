@@ -43,7 +43,6 @@ struct AppSettings: Codable, Hashable, Sendable {
     }
 }
 
-/// UserDefaults-backed store for `AppSettings`.
 enum SettingsStore {
     private static let key = "settings.v1"
     /// Defaults domain from before the app was renamed; read once so an upgrade keeps the commute.

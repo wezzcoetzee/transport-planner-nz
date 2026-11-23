@@ -1,13 +1,12 @@
 import CoreLocation
 import Foundation
 
-struct Stop: Identifiable, Hashable, Sendable, Codable {
+struct Stop: Identifiable, Hashable, Sendable {
     let id: String
     let code: String
     let name: String
     let latitude: Double
     let longitude: Double
-    let parentStation: String?
 
     var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
     var location: CLLocation { .init(latitude: latitude, longitude: longitude) }
@@ -16,17 +15,8 @@ struct Stop: Identifiable, Hashable, Sendable, Codable {
 struct Route: Hashable, Sendable {
     let id: String
     let shortName: String
-    let longName: String
     let type: Int  // GTFS route_type: 2 rail, 3 bus, 4 ferry
-    let color: String?
 
-    var modeName: String {
-        switch type {
-        case 2: "Train";
-        case 4: "Ferry";
-        default: "Bus"
-        }
-    }
     var symbolName: String {
         switch type {
         case 2: "tram.fill";
